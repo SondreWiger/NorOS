@@ -374,9 +374,9 @@ pub fn app_css(config: &Config) -> String {
   --accent-fg-color: {fg};
 }}
 
-button.suggested-action {{ background-color: {accent}; color: {fg}; }}
-button.suggested-action:hover {{ background-color: shade({accent}, 1.08); }}
-button.suggested-action:active {{ background-color: shade({accent}, 0.9); }}
+button.suggested-action {{ background: {accent}; background-image: none; color: {fg}; }}
+button.suggested-action:hover {{ background: shade({accent}, 1.08); background-image: none; }}
+button.suggested-action:active {{ background: shade({accent}, 0.9); background-image: none; }}
 switch:checked {{ background-color: {accent}; }}
 scale highlight, progressbar progress, levelbar block.filled {{ background-color: {accent}; }}
 checkbutton check:checked, checkbutton radio:checked {{ background-color: {accent}; color: {fg}; border-color: {accent}; }}

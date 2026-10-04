@@ -42,10 +42,13 @@ pub fn chroot(root: &Path, program: &str, args: &[&str], input: Option<&str>) ->
     run_with_input("chroot", &full, input)
 }
 
-/// Write a line to the kernel log so it shows up in the system journal.
+/// Write a line to the system journal (and the kernel log as a fallback).
 pub fn log(message: &str) {
-    if let Ok(mut kmsg) = std::fs::OpenOptions::new().write(true).open("/dev/kmsg") {
-        let _ = writeln!(kmsg, "{message}");
+    let logged = Command::new("logger").args(["-t", "noros", message]).status().map(|s| s.success()).unwrap_or(false);
+    if !logged {
+        if let Ok(mut kmsg) = std::fs::OpenOptions::new().write(true).open("/dev/kmsg") {
+            let _ = writeln!(kmsg, "{message}");
+        }
     }
 }
 

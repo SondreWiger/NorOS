@@ -225,9 +225,13 @@ fn configure(opts: &Options, fs_device: &str, esp: &str, root_part: &str) -> Res
     // Live-session leftovers.
     let _ = fs::remove_file(root.join("etc/sudoers.d/noros-live"));
 
-    // Bind the kernel file systems so tools inside the new system work.
-    for dir in ["dev", "proc", "sys", "run"] {
-        sys::run("mount", &["--rbind", &format!("/{dir}"), root.join(dir).to_str().unwrap()])?;
+    // Bind the kernel file systems so tools inside the new system work. They're made
+    // one-way (rslave): unmounting them later must not unmount anything out here.
+    for dir in ["dev", "proc", "sys"] {
+        let target = root.join(dir);
+        let target = target.to_str().unwrap();
+        sys::run("mount", &["--rbind", &format!("/{dir}"), target])?;
+        sys::run("mount", &["--make-rslave", target])?;
     }
     let result = (|| {
         let _ = sys::chroot(&root, "userdel", &["--remove", LIVE_USER], None);
@@ -242,7 +246,6 @@ fn configure(opts: &Options, fs_device: &str, esp: &str, root_part: &str) -> Res
     let _ = sys::run("umount", &["-R", &format!("{TARGET}/dev")]);
     let _ = sys::run("umount", &["-R", &format!("{TARGET}/proc")]);
     let _ = sys::run("umount", &["-R", &format!("{TARGET}/sys")]);
-    let _ = sys::run("umount", &["-R", &format!("{TARGET}/run")]);
     result?;
 
     // The desktop starts for the new user. The disk password already proved who's here.
@@ -283,14 +286,14 @@ fn install_bootloader(opts: &Options, fs_device: &str, root_part: &str) -> Resul
     let boot = PathBuf::from(TARGET).join("usr/lib/systemd/boot/efi").join(stub);
     fs::create_dir_all(esp.join("EFI/systemd"))?;
     fs::create_dir_all(esp.join("EFI/BOOT"))?;
-    fs::copy(&boot, esp.join("EFI/systemd").join(stub))?;
+    copy(&boot, &esp.join("EFI/systemd").join(stub))?;
     // The fallback path works on every UEFI machine, even without boot variables.
-    fs::copy(&boot, esp.join("EFI/BOOT").join(fallback))?;
+    copy(&boot, &esp.join("EFI/BOOT").join(fallback))?;
 
     let kernel_dir = esp.join("noros").join(VERSION);
     fs::create_dir_all(&kernel_dir)?;
-    fs::copy(format!("{SOURCE}/live/vmlinuz"), kernel_dir.join("vmlinuz"))?;
-    fs::copy(format!("{SOURCE}/live/initrd"), kernel_dir.join("initrd"))?;
+    copy(Path::new(&format!("{SOURCE}/live/vmlinuz")), &kernel_dir.join("vmlinuz"))?;
+    copy(Path::new(&format!("{SOURCE}/live/initrd")), &kernel_dir.join("initrd"))?;
 
     fs::create_dir_all(esp.join("loader/entries"))?;
     fs::write(esp.join("loader/loader.conf"), "timeout 3\ndefault noros-current.conf\neditor no\nconsole-mode keep\n")?;
@@ -304,6 +307,11 @@ fn install_bootloader(opts: &Options, fs_device: &str, root_part: &str) -> Resul
 
     // Register with the firmware too, where that's possible (it's fine if not).
     let _ = sys::run("bootctl", &["--esp-path", esp.to_str().unwrap(), "--no-variables", "is-installed"]);
+    Ok(())
+}
+
+fn copy(from: &Path, to: &Path) -> Result<()> {
+    fs::copy(from, to).map_err(|e| Error(format!("could not copy {} to {}: {e}", from.display(), to.display())))?;
     Ok(())
 }
 
