@@ -117,6 +117,7 @@ fn populate(stack: &gtk::Stack, state: &State, window: &gtk::ApplicationWindow) 
     stack.add_titled(&appearance_page(state), Some("appearance"), "Appearance");
     stack.add_titled(&desktop_page(state, window), Some("desktop"), "Desktop & Dock");
     stack.add_titled(&windows_page(state), Some("windows"), "Windows");
+    stack.add_titled(&updates_page(window), Some("updates"), "Updates & Recovery");
     stack.add_titled(&css_page(), Some("css"), "Custom CSS");
     stack.add_titled(&shortcuts_page(), Some("shortcuts"), "Shortcuts");
     stack.add_titled(&about_page(), Some("about"), "About");
@@ -504,5 +505,203 @@ fn about_page() -> gtk::ScrolledWindow {
         let _ = std::process::Command::new("noros-files").arg(lys::noros_dir()).spawn();
     });
     row(&g, "Settings are plain files", Some("~/.config/noros — edit them by hand if you like."), &folder);
+    scroller
+}
+
+// ── Updates & Recovery ───────────────────────────────────────────────
+
+/// Run `noros-update` with administrator rights, asking for the user's password first.
+/// The password goes to sudo over a pipe and is never stored.
+fn run_privileged(window: &gtk::ApplicationWindow, why: &str, args: Vec<String>, done: impl Fn(bool, String) + 'static) {
+    let dialog = gtk::Window::builder()
+        .transient_for(window)
+        .modal(true)
+        .title("Administrator Password")
+        .default_width(380)
+        .resizable(false)
+        .build();
+    let content = gtk::Box::new(gtk::Orientation::Vertical, 10);
+    content.set_margin_top(20);
+    content.set_margin_bottom(20);
+    content.set_margin_start(20);
+    content.set_margin_end(20);
+    let text = gtk::Label::new(Some(&format!("{why}\nEnter your password to allow this.")));
+    text.set_wrap(true);
+    text.set_xalign(0.0);
+    content.append(&text);
+    let entry = gtk::PasswordEntry::new();
+    entry.set_show_peek_icon(true);
+    content.append(&entry);
+    let status = gtk::Label::new(None);
+    status.add_css_class("row-subtitle");
+    status.set_xalign(0.0);
+    content.append(&status);
+    let buttons = gtk::Box::new(gtk::Orientation::Horizontal, 8);
+    buttons.set_halign(gtk::Align::End);
+    let cancel = gtk::Button::with_label("Cancel");
+    let ok = gtk::Button::with_label("Allow");
+    ok.add_css_class("suggested-action");
+    buttons.append(&cancel);
+    buttons.append(&ok);
+    content.append(&buttons);
+    dialog.set_child(Some(&content));
+
+    let done = Rc::new(done);
+    let submit = {
+        let dialog = dialog.clone();
+        let entry = entry.clone();
+        let status = status.clone();
+        let ok = ok.clone();
+        move || {
+            let mut argv: Vec<String> = vec!["sudo".into(), "-S".into(), "-k".into(), "-p".into(), "".into(), "noros-update".into()];
+            argv.extend(args.iter().cloned());
+            let argv: Vec<&std::ffi::OsStr> = argv.iter().map(std::ffi::OsStr::new).collect();
+            let process = match gio::Subprocess::newv(
+                &argv,
+                gio::SubprocessFlags::STDIN_PIPE | gio::SubprocessFlags::STDOUT_PIPE | gio::SubprocessFlags::STDERR_MERGE,
+            ) {
+                Ok(p) => p,
+                Err(err) => {
+                    status.set_text(&err.to_string());
+                    return;
+                }
+            };
+            ok.set_sensitive(false);
+            status.set_text("Working…");
+            let input = format!("{}\n", entry.text());
+            let dialog = dialog.clone();
+            let status = status.clone();
+            let ok = ok.clone();
+            let done = done.clone();
+            process.clone().communicate_utf8_async(Some(input), gio::Cancellable::NONE, move |result| {
+                let output = result.ok().and_then(|(out, _)| out).map(|s| s.to_string()).unwrap_or_default();
+                let success = process.is_successful();
+                if !success && (output.contains("incorrect password") || output.contains("Sorry, try again")) {
+                    ok.set_sensitive(true);
+                    status.set_text("Wrong password. Try again.");
+                    return;
+                }
+                dialog.close();
+                done(success, output.trim().to_string());
+            });
+        }
+    };
+    {
+        let submit = submit.clone();
+        ok.connect_clicked(move |_| submit());
+    }
+    entry.connect_activate(move |_| submit());
+    {
+        let dialog = dialog.clone();
+        cancel.connect_clicked(move |_| dialog.close());
+    }
+    dialog.present();
+    entry.grab_focus();
+}
+
+fn show_message(window: &gtk::ApplicationWindow, title: &str, detail: &str) {
+    let alert = gtk::AlertDialog::builder().message(title).detail(detail).modal(true).build();
+    alert.show(Some(window));
+}
+
+fn format_date(secs: u64) -> String {
+    glib::DateTime::from_unix_local(secs as i64)
+        .and_then(|d| d.format("%e %b %Y, %H:%M"))
+        .map(|s| s.trim().to_string())
+        .unwrap_or_default()
+}
+
+fn updates_page(window: &gtk::ApplicationWindow) -> gtk::ScrolledWindow {
+    let (scroller, content) = page(
+        "Updates & Recovery",
+        "NorOS takes a snapshot of the system before every change. If something breaks, roll back to how it was — or pick a snapshot from the boot menu to try it first.",
+    );
+    let status: serde_json::Value = std::process::Command::new("noros-update")
+        .args(["status", "--json"])
+        .output()
+        .ok()
+        .and_then(|o| serde_json::from_slice(&o.stdout).ok())
+        .unwrap_or_default();
+    let live = status["live"].as_bool().unwrap_or(true);
+
+    let g = group(&content, "This System");
+    let version = gtk::Label::new(Some(&format!("NorOS {}", status["version"].as_str().unwrap_or(env!("CARGO_PKG_VERSION")))));
+    row(&g, "Version", None, &version);
+    if live {
+        let install = gtk::Button::with_label("Install NorOS…");
+        install.add_css_class("suggested-action");
+        install.connect_clicked(|_| {
+            let _ = std::process::Command::new("noros-installer").spawn();
+        });
+        row(&g, "Running from the live disk", Some("Nothing is saved here. Install NorOS to keep your work and get snapshots."), &install);
+        return scroller;
+    }
+    if status["reboot_required"].as_bool().unwrap_or(false) {
+        let restart = gtk::Button::with_label("Restart Now");
+        restart.add_css_class("suggested-action");
+        restart.connect_clicked(|_| {
+            let _ = std::process::Command::new("systemctl").arg("reboot").spawn();
+        });
+        row(&g, "A rollback is ready", Some("Restart to start the snapshot you chose."), &restart);
+    }
+
+    let g = group(&content, "Updates");
+    let upgrade = gtk::Button::with_label("Update Now…");
+    {
+        let window = window.clone();
+        upgrade.connect_clicked(move |_| {
+            // Shown in a terminal so you can see exactly what is downloaded.
+            let _ = std::process::Command::new("foot")
+                .args(["--title", "NorOS Update", "sh", "-c", "sudo noros-update upgrade; echo; echo 'Press Enter to close.'; read _"])
+                .spawn();
+            let _ = &window;
+        });
+    }
+    row(
+        &g,
+        "Install system updates",
+        Some("Downloads updates from the Debian servers NorOS is built on. This only happens when you press the button; a snapshot is taken first."),
+        &upgrade,
+    );
+
+    let g = group(&content, "Snapshots");
+    let take = gtk::Button::with_label("Take Snapshot…");
+    {
+        let window = window.clone();
+        take.connect_clicked(move |_| {
+            let window2 = window.clone();
+            run_privileged(&window, "Take a snapshot of the system.", vec!["snapshot".into(), "Manual snapshot".into()], move |ok, output| {
+                show_message(&window2, if ok { "Snapshot taken" } else { "Couldn't take a snapshot" }, &output);
+            });
+        });
+    }
+    row(&g, "Take a snapshot now", Some("Before trying something risky."), &take);
+
+    let snapshots = status["snapshots"].as_array().cloned().unwrap_or_default();
+    if snapshots.is_empty() {
+        let none = gtk::Label::new(Some("None yet"));
+        row(&g, "No snapshots", None, &none);
+    }
+    for snapshot in snapshots {
+        let id = snapshot["id"].as_u64().unwrap_or(0);
+        let description = snapshot["description"].as_str().unwrap_or("").to_string();
+        let when = format_date(snapshot["created"].as_u64().unwrap_or(0));
+        let auto = if snapshot["automatic"].as_bool().unwrap_or(false) { " · automatic" } else { "" };
+        let rollback = gtk::Button::with_label("Roll Back…");
+        let window = window.clone();
+        let title = format!("#{id}  {description}");
+        rollback.connect_clicked(move |_| {
+            let window2 = window.clone();
+            run_privileged(
+                &window,
+                &format!("Roll the system back to snapshot #{id}. Your current system is kept as a snapshot, and your files in Home are not touched."),
+                vec!["rollback".into(), id.to_string()],
+                move |ok, output| {
+                    show_message(&window2, if ok { "Restart to finish" } else { "Rollback failed" }, &output);
+                },
+            );
+        });
+        row(&g, &title, Some(&format!("{when}{auto}")), &rollback);
+    }
     scroller
 }

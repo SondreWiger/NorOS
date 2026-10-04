@@ -155,6 +155,7 @@ popover.noros-menu separator {
 .tile-terminal { background: linear-gradient(160deg, #23324D, #0B1220); color: @noros_accent; }
 .tile-text     { background: linear-gradient(160deg, #F6C86A, #D98A1E); }
 .tile-settings { background: linear-gradient(160deg, #8A96A8, #4A5568); }
+.tile-install  { background: linear-gradient(160deg, #F5A524, #E5484D); }
 .tile-about    { background: linear-gradient(160deg, #3DDC97, #1C8C7A); }
 .tile-app      { background: alpha(@noros_text, 0.08); }
 

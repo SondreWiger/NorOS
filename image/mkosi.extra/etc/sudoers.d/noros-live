@@ -1,0 +1,3 @@
+# Live session only: the installer may run without a password (the installer
+# deletes this file from the installed system).
+noros ALL=(root) NOPASSWD: /usr/bin/noros-install

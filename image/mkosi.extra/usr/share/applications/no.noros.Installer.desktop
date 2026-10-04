@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Install NorOS
+Comment=Install NorOS on this computer
+Exec=noros-installer
+Icon=drive-harddisk-symbolic
+Terminal=false
+Categories=System;
+Keywords=install;setup;disk;

@@ -43,6 +43,11 @@ pub fn wallpaper_dir() -> PathBuf {
     noros_dir().join("wallpapers")
 }
 
+/// Running from the live ISO (nothing is saved)?
+pub fn is_live() -> bool {
+    fs::read_to_string("/proc/cmdline").map(|c| c.contains("NOROS_LIVE")).unwrap_or(false)
+}
+
 // ── Configuration ────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -361,6 +366,23 @@ pub fn app_css(config: &Config) -> String {
 @define-color accent_fg_color {fg};
 @define-color theme_selected_bg_color {accent};
 @define-color theme_selected_fg_color {fg};
+
+/* GTK 4.16+ themes read the accent from CSS variables. */
+:root {{
+  --accent-bg-color: {accent};
+  --accent-color: {accent};
+  --accent-fg-color: {fg};
+}}
+
+button.suggested-action {{ background-color: {accent}; color: {fg}; }}
+button.suggested-action:hover {{ background-color: shade({accent}, 1.08); }}
+button.suggested-action:active {{ background-color: shade({accent}, 0.9); }}
+switch:checked {{ background-color: {accent}; }}
+scale highlight, progressbar progress, levelbar block.filled {{ background-color: {accent}; }}
+checkbutton check:checked, checkbutton radio:checked {{ background-color: {accent}; color: {fg}; border-color: {accent}; }}
+.navigation-sidebar row:selected, stacksidebar row:selected {{ background-color: alpha({accent}, 0.28); }}
+selection, text selection, entry selection {{ background-color: alpha({accent}, 0.4); }}
+entry:focus-within, passwordentry:focus-within {{ outline-color: alpha({accent}, 0.6); }}
 ",
         accent = to_hex(accent),
         fg = readable_on(accent),

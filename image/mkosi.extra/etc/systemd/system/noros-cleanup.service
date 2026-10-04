@@ -1,0 +1,11 @@
+[Unit]
+Description=Finish NorOS rollbacks and tidy snapshots
+ConditionPathIsDirectory=/.snapshots
+After=local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/noros-update cleanup
+
+[Install]
+WantedBy=multi-user.target

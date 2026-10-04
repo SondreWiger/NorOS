@@ -13,7 +13,7 @@ mod wallpaper;
 use gtk::{gdk, gio, glib, prelude::*};
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
-pub const RELEASE_NAME: &str = "Form";
+pub const RELEASE_NAME: &str = "Fundament";
 
 const BASE_CSS: &str = include_str!("../theme/noros.css");
 

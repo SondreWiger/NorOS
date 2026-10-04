@@ -1,0 +1,11 @@
+[package]
+name = "noros-installer"
+description = "Install NorOS: the graphical installer for the live session"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+gtk = { workspace = true }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

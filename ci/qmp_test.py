@@ -45,54 +45,149 @@ class Qmp:
             self.cmd("input-send-event", events=[{"type": "btn", "data": {"down": down, "button": "left"}}])
             time.sleep(0.15)
 
+    SYMBOLS = {" ": ["spc"], "-": ["minus"], "_": ["shift", "minus"], "/": ["slash"], ".": ["dot"],
+               "\n": ["ret"], ":": ["shift", "semicolon"], "=": ["equal"]}
+
     def type(self, text):
         for ch in text:
-            self.keys("spc" if ch == " " else ch)
+            if ch in self.SYMBOLS:
+                keys = self.SYMBOLS[ch]
+            elif ch.isupper():
+                keys = ["shift", ch.lower()]
+            else:
+                keys = [ch]
+            self.keys(*keys)
             time.sleep(0.08)
 
 
-def wait_for(path, needle, timeout):
+def wait_for(path, needle, timeout, also=None):
     deadline = time.time() + timeout
     while time.time() < deadline:
         try:
             with open(path, errors="replace") as f:
-                if needle in f.read():
+                text = f.read()
+                if needle in text:
                     return True
+                if also and also in text:
+                    return False
         except FileNotFoundError:
             pass
         time.sleep(2)
     return False
 
 
+PASSPHRASE = "nordlys-test-1"
+
+
+def connect(path):
+    for _ in range(30):
+        try:
+            return Qmp(path)
+        except OSError:
+            time.sleep(1)
+    return None
+
+
+def wait_desktop(qmp, a, name):
+    start = time.time()
+    if not wait_for(a.serial, "fjord: first frame on screen", a.timeout):
+        print(f"desktop did not appear within {a.timeout}s")
+        qmp.screenshot(f"{a.out}/{name}-timeout.png")
+        return False
+    print(f"desktop up after ~{time.time() - start:.0f}s")
+    return True
+
+
 def main():
     p = argparse.ArgumentParser()
+    p.add_argument("--phase", default="live", choices=["live", "install", "installed", "quit"])
     p.add_argument("--timeout", type=int, default=240)
     p.add_argument("--serial", required=True)
     p.add_argument("--socket", required=True)
     p.add_argument("--out", required=True)
     a = p.parse_args()
 
-    for _ in range(30):
-        try:
-            qmp = Qmp(a.socket)
-            break
-        except OSError:
-            time.sleep(1)
-    else:
+    qmp = connect(a.socket)
+    if qmp is None:
         print("could not connect to QEMU monitor")
-        return 1
+        return 0 if a.phase == "quit" else 1
+    if a.phase == "quit":
+        qmp.cmd("quit")
+        return 0
+    settle = 25 if a.timeout > 300 else 8
+    return {"live": phase_live, "install": phase_install, "installed": phase_installed}[a.phase](qmp, a, settle)
 
+
+def phase_install(qmp, a, settle):
+    """Open the installer, then install from a terminal onto the blank disk (/dev/vda)."""
+    if not wait_desktop(qmp, a, "i0"):
+        return 1
+    time.sleep(settle)
+    qmp.screenshot(f"{a.out}/i1-live-desktop.png")
+    qmp.keys("meta_l", "spc")
+    time.sleep(settle)
+    qmp.type("install")
+    time.sleep(2)
+    qmp.keys("ret")
+    time.sleep(settle * 1.5)
+    qmp.screenshot(f"{a.out}/i2-installer.png")
+    qmp.keys("meta_l", "q")
+    time.sleep(3)
+
+    qmp.keys("meta_l", "ret")
+    time.sleep(settle)
+    qmp.type("sudo noros-install --yes --disk /dev/vda --user tester --name Tester\n")
+    time.sleep(4)
+    qmp.type(PASSPHRASE + "\n")
+    time.sleep(2)
+    qmp.type(PASSPHRASE + "\n")
+    install_timeout = a.timeout * 3
+    done = wait_for(a.serial, "noros-install: installation complete", install_timeout, also="noros-install: failed")
+    time.sleep(3)
+    qmp.screenshot(f"{a.out}/i3-installed.png")
+    with open(a.serial, errors="replace") as f:
+        log = f.read()
+    if "noros-install: installation complete" not in log:
+        print("installation did not complete")
+        return 1
+    print("installation complete")
+    return 0
+
+
+def phase_installed(qmp, a, settle):
+    """Boot the installed system: unlock the disk, then check the desktop and Settings."""
     start = time.time()
-    booted = wait_for(a.serial, "fjord: first frame on screen", a.timeout)
-    elapsed = time.time() - start
+    booted = False
+    # The passphrase prompt isn't visible on the serial log; type it until the desktop appears.
+    while time.time() - start < a.timeout:
+        if wait_for(a.serial, "fjord: first frame on screen", 60 if a.timeout > 300 else 20):
+            booted = True
+            break
+        qmp.screenshot(f"{a.out}/j0-unlock.png")
+        qmp.type(PASSPHRASE + "\n")
     if not booted:
-        print(f"desktop did not appear within {a.timeout}s")
-        qmp.screenshot(f"{a.out}/0-timeout.png")
+        print("installed system did not reach the desktop")
+        qmp.screenshot(f"{a.out}/j0-timeout.png")
         return 1
-    print(f"desktop up after ~{elapsed:.0f}s")
+    print(f"installed desktop up after ~{time.time() - start:.0f}s")
+    time.sleep(settle)
+    qmp.screenshot(f"{a.out}/j1-installed-desktop.png")
 
-    slow = a.timeout > 300
-    settle = 25 if slow else 8
+    qmp.keys("meta_l", "spc")
+    time.sleep(settle)
+    qmp.type("settings")
+    time.sleep(2)
+    qmp.keys("ret")
+    time.sleep(settle * 1.5)
+    qmp.click(330, 262)  # "Updates & Recovery" in the sidebar
+    time.sleep(settle)
+    qmp.screenshot(f"{a.out}/j2-updates.png")
+    return 0
+
+
+def phase_live(qmp, a, settle):
+    if not wait_desktop(qmp, a, "0"):
+        return 1
     time.sleep(settle)  # let the shell draw wallpaper, bar and dock
     qmp.screenshot(f"{a.out}/1-desktop.png")
 

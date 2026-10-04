@@ -99,12 +99,16 @@ pub struct Fjord {
     pub xdg_shell_state: XdgShellState,
     pub layer_shell_state: WlrLayerShellState,
     pub shm_state: ShmState,
+    // Protocol globals stay registered for as long as their state lives.
+    #[allow(dead_code)]
     pub output_manager_state: OutputManagerState,
     pub seat_state: SeatState<Fjord>,
     pub data_device_state: DataDeviceState,
     pub primary_selection_state: PrimarySelectionState,
+    #[allow(dead_code)]
     pub xdg_decoration_state: XdgDecorationState,
     pub xdg_activation_state: XdgActivationState,
+    #[allow(dead_code)]
     pub viewporter_state: ViewporterState,
     pub dmabuf_state: Option<(DmabufState, DmabufGlobal)>,
 

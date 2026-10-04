@@ -1,0 +1,2 @@
+// Take a btrfs snapshot before packages change, so any update can be rolled back.
+DPkg::Pre-Invoke { "if [ -x /usr/bin/noros-update ]; then /usr/bin/noros-update snapshot --auto 'Before package changes' || true; fi"; };

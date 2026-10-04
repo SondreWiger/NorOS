@@ -105,7 +105,11 @@ fn system_menu(position: BarPosition) -> gtk::MenuButton {
     popover.set_has_arrow(false);
     let list = gtk::Box::new(gtk::Orientation::Vertical, 0);
 
-    let entries: [(&str, &'static str); 8] = [
+    let mut entries: Vec<(&str, &'static str)> = Vec::new();
+    if lys::is_live() {
+        entries.extend([("Install NorOS…", "noros-installer"), ("—", "")]);
+    }
+    entries.extend([
         ("About NorOS", "noros-shell --about"),
         ("System Settings…", "noros-settings"),
         ("—", ""),
@@ -114,7 +118,7 @@ fn system_menu(position: BarPosition) -> gtk::MenuButton {
         ("—", ""),
         ("Restart…", "systemctl reboot"),
         ("Shut Down…", "systemctl poweroff"),
-    ];
+    ]);
     for (label, command) in entries {
         if label == "—" {
             list.append(&gtk::Separator::new(gtk::Orientation::Horizontal));
@@ -160,11 +164,13 @@ fn dock_entry(id: &str) -> Option<DockEntry> {
         "no.noros.Text.desktop" => Some(("Text Editor", "tile-text", "accessories-text-editor-symbolic")),
         "no.noros.Settings.desktop" => Some(("Settings", "tile-settings", "emblem-system-symbolic")),
         "noros-about" => Some(("About NorOS", "tile-about", "computer-symbolic")),
+        "noros-install" => Some(("Install NorOS", "tile-install", "drive-harddisk-symbolic")),
         _ => None,
     };
     let launch = match id {
         "noros-search" => Launch::Command("noros-shell --launcher"),
         "noros-about" => Launch::Command("noros-shell --about"),
+        "noros-install" => Launch::Command("noros-installer"),
         _ => Launch::App(gio::AppInfo::all().into_iter().find(|a| a.id().as_deref() == Some(id))?),
     };
     Some(match known {
@@ -213,7 +219,12 @@ pub fn build_dock(app: &gtk::Application, config: &Config) -> gtk::ApplicationWi
     }
 
     let icon_px = (config.dock.icon_size as f64 * 0.5).round() as i32;
-    for id in &config.dock.apps {
+    // In the live session, installing comes first.
+    let mut apps = config.dock.apps.clone();
+    if lys::is_live() {
+        apps.insert(0, "noros-install".to_string());
+    }
+    for id in &apps {
         let Some(entry) = dock_entry(id) else { continue };
         let button = gtk::Button::new();
         button.add_css_class("dock-item");

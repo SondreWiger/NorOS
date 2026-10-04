@@ -257,7 +257,7 @@ checksum = "aedcfb3409746eddb02b9e19ebda1c3394f759a152e48ee875a0844d1b955484"
 
 [[package]]
 name = "fjord"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "bitflags",
  "smithay",
@@ -265,6 +265,15 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "xcursor",
+]
+
+[[package]]
+name = "fundament"
+version = "0.3.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "toml",
 ]
 
 [[package]]
@@ -727,6 +736,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "itoa"
+version = "1.0.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
+
+[[package]]
 name = "khronos_api"
 version = "3.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -810,7 +825,7 @@ checksum = "f9f8bd3e56ce4dfc153cf470fffbfa98c7620958b312ca5c3a4b8d5181fd13c6"
 
 [[package]]
 name = "lys"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "gio",
  "serde",
@@ -852,22 +867,32 @@ dependencies = [
 
 [[package]]
 name = "noros-files"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "gtk4",
+]
+
+[[package]]
+name = "noros-installer"
+version = "0.3.0"
+dependencies = [
+ "gtk4",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
 name = "noros-settings"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "gtk4",
  "lys",
+ "serde_json",
 ]
 
 [[package]]
 name = "noros-shell"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "gtk4",
  "gtk4-layer-shell",
@@ -876,7 +901,7 @@ dependencies = [
 
 [[package]]
 name = "noros-text"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "gtk4",
 ]
@@ -1127,6 +1152,19 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 3.0.6",
+]
+
+[[package]]
+name = "serde_json"
+version = "1.0.151"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c841b55ecdae098c80dcae9cf767f6f8a0c2cdb3416bbef72181df4d0fe73f14"
+dependencies = [
+ "itoa",
+ "memchr",
+ "serde",
+ "serde_core",
+ "zmij",
 ]
 
 [[package]]
@@ -1736,3 +1774,9 @@ name = "xml-rs"
 version = "0.8.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e450f9b2ed1dff33c94c12589a87338689467b9c4f5d8a5710bd09a847d2c8a7"
+
+[[package]]
+name = "zmij"
+version = "1.0.23"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "29666d0abbfad1e3dc4dcf6144730dd3a3ab225bbbdac83319345b1b44ccfc1b"

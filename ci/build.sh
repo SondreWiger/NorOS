@@ -27,7 +27,7 @@ TARGET="${CARGO_TARGET_DIR:-target}"
 rm -rf out/stage
 install -Dm755 "$TARGET"/release/fjord        out/stage/usr/bin/fjord
 install -Dm755 "$TARGET"/release/noros-shell  out/stage/usr/bin/noros-shell
-for app in noros-settings noros-files noros-text; do
+for app in noros-settings noros-files noros-text noros-installer noros-install noros-update; do
     install -Dm755 "$TARGET/release/$app" "out/stage/usr/bin/$app"
 done
 install -Dm644 shell/theme/noros.css        out/stage/usr/share/noros/theme/noros.css
