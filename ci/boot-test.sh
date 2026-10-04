@@ -6,7 +6,7 @@ set -uo pipefail
 ARCH="$1"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OUT="$ROOT/out/boot-test"
-IMAGE="$ROOT/out/noros.raw"
+ISO=$(ls "$ROOT"/out/noros-*-"$ARCH".iso | head -n1)
 mkdir -p "$OUT"
 cd "$OUT"
 
@@ -37,9 +37,11 @@ case "$ARCH" in
 esac
 
 QEMU+=(-m 4096 -smp 4
-       -drive file="$IMAGE",format=raw,if=virtio
+       -device virtio-scsi-pci,id=scsi
+       -drive if=none,id=cd,media=cdrom,readonly=on,format=raw,file="$ISO"
+       -device scsi-cd,drive=cd,bus=scsi.0
        -device qemu-xhci -device usb-kbd -device usb-tablet
-       -smbios "type=11,value=io.systemd.stub.kernel-cmdline-extra=console=$CONSOLE systemd.journald.forward_to_console=1"
+       -smbios "type=11,value=io.systemd.boot.kernel-cmdline-extra=console=$CONSOLE systemd.journald.forward_to_console=1"
        -serial file:serial.log
        -display none
        -qmp unix:qmp.sock,server=on,wait=off)

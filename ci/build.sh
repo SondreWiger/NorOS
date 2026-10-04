@@ -10,7 +10,7 @@ apt-get install -y --no-install-recommends \
     libudev-dev libinput-dev libseat-dev libgbm-dev libdrm-dev libxkbcommon-dev \
     libgtk-4-dev libgtk4-layer-shell-dev \
     mkosi systemd-ukify systemd-repart systemd-boot-efi \
-    apt debian-archive-keyring dosfstools mtools e2fsprogs cpio zstd kmod python3
+    apt debian-archive-keyring dosfstools mtools e2fsprogs cpio zstd kmod python3 xorriso
 
 # Rust toolchain (cached between runs via RUSTUP_HOME / CARGO_HOME).
 if ! command -v cargo >/dev/null && [ ! -x "$CARGO_HOME/bin/cargo" ]; then
@@ -30,4 +30,6 @@ install -Dm644 shell/theme/noros.css        out/stage/usr/share/noros/theme/noro
 
 cd image
 mkosi --extra-tree="$PWD/../out/stage" --force build
-ls -lh ../out
+cd ..
+bash ci/make-iso.sh
+ls -lh out

@@ -7,6 +7,9 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 concurrency:
   group: build-${{ github.ref }}
   cancel-in-progress: true
@@ -80,3 +83,13 @@ jobs:
             Cargo.lock
           retention-days: 14
           if-no-files-found: warn
+
+      - name: Publish ISO to the dev release
+        if: success() && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view v0.1-dev >/dev/null 2>&1 || \
+            gh release create v0.1-dev --prerelease --title "NorOS 0.1 (development build)" \
+              --notes "Automatic build of the latest main branch. Boot it in UTM, VirtualBox or QEMU (UEFI), or write it to a USB stick. User: noros / password: noros."
+          gh release upload v0.1-dev out/noros-*.iso --clobber
