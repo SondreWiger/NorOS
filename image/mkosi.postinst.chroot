@@ -16,3 +16,13 @@ done
 systemctl enable noros-session.service
 systemctl enable systemd-networkd.service systemd-resolved.service
 systemctl set-default graphical.target
+
+# Development builds mirror the system log to the serial port, so automated
+# boot tests can follow along. Remove before release.
+case "$(dpkg --print-architecture)" in
+    arm64) serial=ttyAMA0 ;;
+    *)     serial=ttyS0 ;;
+esac
+mkdir -p /etc/systemd/journald.conf.d
+printf '[Journal]\nForwardToConsole=yes\nTTYPath=/dev/%s\nMaxLevelConsole=info\n' "$serial" \
+    > /etc/systemd/journald.conf.d/10-serial.conf

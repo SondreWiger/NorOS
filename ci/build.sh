@@ -10,7 +10,7 @@ apt-get install -y --no-install-recommends \
     libudev-dev libinput-dev libseat-dev libgbm-dev libdrm-dev libxkbcommon-dev \
     libgtk-4-dev libgtk4-layer-shell-dev \
     mkosi systemd-ukify systemd-repart systemd-boot-efi \
-    apt debian-archive-keyring dosfstools mtools e2fsprogs cpio zstd kmod python3 xorriso
+    apt debian-archive-keyring dosfstools mtools e2fsprogs cpio zstd kmod python3 xorriso grub-common "grub-efi-$(dpkg --print-architecture)-bin"
 
 # Rust toolchain (cached between runs via RUSTUP_HOME / CARGO_HOME).
 if ! command -v cargo >/dev/null && [ ! -x "$CARGO_HOME/bin/cargo" ]; then
@@ -33,4 +33,6 @@ cd image
 mkosi --extra-tree="$PWD/../out/stage" --force build
 cd ..
 bash ci/make-iso.sh
+# The ISO is the deliverable; drop the large intermediate images.
+rm -rf out/noros.raw out/noros out/iso
 ls -lh out

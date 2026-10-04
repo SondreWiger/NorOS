@@ -87,7 +87,8 @@ impl PointerGrab<Fjord> for MoveSurfaceGrab {
     ) {
         handle.motion(data, None, event);
         let delta = event.location - self.start_data.location;
-        let mut new_location = (self.initial_window_location.to_f64() + delta).to_i32_round();
+        let mut new_location = (self.initial_window_location.to_f64() + delta)
+            .to_i32_round::<i32>();
         // Never let a title bar slide under the menu bar.
         let top = data.usable_area().loc.y;
         new_location.y = new_location.y.max(top);

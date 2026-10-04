@@ -723,7 +723,8 @@ impl WlrLayerShellHandler for Fjord {
         let mut had_focus = false;
         for output in self.space.outputs() {
             let mut map = layer_map_for_output(output);
-            if let Some(layer) = map.layers().find(|l| l.layer_surface() == &surface).cloned() {
+            let layer = map.layers().find(|l| l.layer_surface() == &surface).cloned();
+            if let Some(layer) = layer {
                 had_focus = self.seat.get_keyboard().unwrap().current_focus().as_ref() == Some(layer.wl_surface());
                 map.unmap_layer(&layer);
             }
