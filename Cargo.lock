@@ -257,7 +257,7 @@ checksum = "aedcfb3409746eddb02b9e19ebda1c3394f759a152e48ee875a0844d1b955484"
 
 [[package]]
 name = "fjord"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "bitflags",
  "smithay",
@@ -809,6 +809,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f9f8bd3e56ce4dfc153cf470fffbfa98c7620958b312ca5c3a4b8d5181fd13c6"
 
 [[package]]
+name = "lys"
+version = "0.2.0"
+dependencies = [
+ "serde",
+ "toml",
+]
+
+[[package]]
 name = "matchers"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -842,11 +850,34 @@ dependencies = [
 ]
 
 [[package]]
+name = "noros-files"
+version = "0.2.0"
+dependencies = [
+ "gtk4",
+]
+
+[[package]]
+name = "noros-settings"
+version = "0.2.0"
+dependencies = [
+ "gtk4",
+ "lys",
+]
+
+[[package]]
 name = "noros-shell"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "gtk4",
  "gtk4-layer-shell",
+ "lys",
+]
+
+[[package]]
+name = "noros-text"
+version = "0.2.0"
+dependencies = [
+ "gtk4",
 ]
 
 [[package]]
@@ -1066,6 +1097,16 @@ name = "semver"
 version = "1.0.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a7852d02fc848982e0c167ef163aaff9cd91dc640ba85e263cb1ce46fae51cd"
+
+[[package]]
+name = "serde"
+version = "1.0.229"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4148590afebada386688f18773da617792bf2ef03ffc1e4cbd2b1d45b023e0ba"
+dependencies = [
+ "serde_core",
+ "serde_derive",
+]
 
 [[package]]
 name = "serde_core"

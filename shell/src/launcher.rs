@@ -59,7 +59,12 @@ fn collect_entries() -> Vec<Entry> {
         })
         .collect();
 
-    let mut apps: Vec<_> = gio::AppInfo::all().into_iter().filter(|a| a.should_show()).collect();
+    // The built-in Terminal action covers foot; its helper entries are just noise.
+    const HIDDEN: &[&str] = &["foot.desktop", "footclient.desktop", "foot-server.desktop"];
+    let mut apps: Vec<_> = gio::AppInfo::all()
+        .into_iter()
+        .filter(|a| a.should_show() && !a.id().is_some_and(|id| HIDDEN.contains(&id.as_str())))
+        .collect();
     apps.sort_by_key(|a| a.display_name().to_lowercase());
     for app in apps {
         let title = app.display_name().to_string();

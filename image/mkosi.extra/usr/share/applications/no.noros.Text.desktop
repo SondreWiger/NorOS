@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Text Editor
+Comment=Write and edit plain text
+Exec=noros-text %F
+Icon=accessories-text-editor-symbolic
+Terminal=false
+Categories=Utility;TextEditor;
+MimeType=text/plain;text/markdown;text/x-log;application/x-shellscript;text/css;application/toml;
+Keywords=notepad;notes;write;

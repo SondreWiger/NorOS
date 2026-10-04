@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Files
+Comment=Browse and organize your files
+Exec=noros-files %U
+Icon=folder-symbolic
+Terminal=false
+Categories=System;FileManager;
+MimeType=inode/directory;
+Keywords=folder;explorer;finder;

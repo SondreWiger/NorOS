@@ -1,13 +1,15 @@
 [workspace]
 resolver = "3"
-members = ["fjord", "shell"]
+members = ["fjord", "shell", "crates/lys", "apps/settings", "apps/files", "apps/text"]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 license = "LicenseRef-NorOS-Proprietary"
 
 [workspace.dependencies]
+gtk = { package = "gtk4", version = "0.11", features = ["v4_12"] }
+lys = { path = "crates/lys" }
 # Pinned to the exact revision Fjord was written against.
 smithay = { git = "https://github.com/Smithay/smithay", rev = "118e34ffc9b99854a2230c4805e1f37dc9029edb", default-features = false }
 smithay-drm-extras = { git = "https://github.com/Smithay/smithay", rev = "118e34ffc9b99854a2230c4805e1f37dc9029edb", default-features = false }

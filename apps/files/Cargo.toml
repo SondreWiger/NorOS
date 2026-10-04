@@ -1,0 +1,9 @@
+[package]
+name = "noros-files"
+description = "NorOS file manager"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+gtk = { workspace = true }

@@ -2,7 +2,12 @@
 # Runs inside the image after all packages are installed.
 set -e
 
-# The default user. 0.1 is a development build: password "noros".
+# Standard folders every new user starts with.
+for dir in Desktop Documents Downloads Music Pictures Videos; do
+    mkdir -p "/etc/skel/$dir"
+done
+
+# The default user. This is a development build: password "noros".
 if ! id noros >/dev/null 2>&1; then
     useradd --create-home --shell /bin/bash --comment "NorOS" noros
 fi

@@ -29,6 +29,7 @@ enum Action {
     VtSwitch(i32),
     Launcher,
     Terminal,
+    Files,
     CloseWindow,
     CycleWindows,
     ToggleMaximize,
@@ -88,6 +89,9 @@ impl Fjord {
             Action::Launcher => self.toggle_launcher(),
             Action::Terminal => {
                 self.spawn(TERMINAL);
+            }
+            Action::Files => {
+                self.spawn("noros-files");
             }
             Action::CloseWindow => self.close_focused(),
             Action::CycleWindows => self.cycle_windows(),
@@ -250,6 +254,7 @@ fn shortcut(logo: bool, ctrl: bool, alt: bool, keysym: Keysym) -> Option<Action>
     match keysym {
         Keysym::space => Some(Action::Launcher),
         Keysym::Return => Some(Action::Terminal),
+        Keysym::e => Some(Action::Files),
         Keysym::q | Keysym::w => Some(Action::CloseWindow),
         Keysym::Tab => Some(Action::CycleWindows),
         Keysym::Up | Keysym::m => Some(Action::ToggleMaximize),

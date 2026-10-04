@@ -1,0 +1,8 @@
+[Default Applications]
+inode/directory=no.noros.Files.desktop
+text/plain=no.noros.Text.desktop
+text/markdown=no.noros.Text.desktop
+text/x-log=no.noros.Text.desktop
+text/css=no.noros.Text.desktop
+application/toml=no.noros.Text.desktop
+application/x-shellscript=no.noros.Text.desktop

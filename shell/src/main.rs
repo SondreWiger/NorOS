@@ -1,9 +1,11 @@
 //! noros-shell — the NorOS desktop: wallpaper, menu bar, dock, launcher and About window.
 //!
-//! Every visible piece is plain GTK styled by CSS. The default theme ships at
-//! /usr/share/noros/theme/noros.css and anything in ~/.config/noros/theme.css wins.
+//! Every visible piece is plain GTK styled by CSS: the base theme, then the CSS Lys
+//! generates from ~/.config/noros/config.toml, then the user's own theme.css.
+//! The desktop watches those files and rebuilds itself when they change.
 
 mod about;
+mod desktop;
 mod launcher;
 mod panels;
 mod wallpaper;
@@ -11,9 +13,9 @@ mod wallpaper;
 use gtk::{gdk, gio, glib, prelude::*};
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
-pub const RELEASE_NAME: &str = "Første lys";
+pub const RELEASE_NAME: &str = "Form";
 
-const DEFAULT_CSS: &str = include_str!("../theme/noros.css");
+const BASE_CSS: &str = include_str!("../theme/noros.css");
 
 #[derive(Clone, Copy)]
 enum Mode {
@@ -52,13 +54,9 @@ fn main() -> glib::ExitCode {
         .build();
 
     app.connect_activate(move |app| {
-        load_theme();
+        let theme = Theme::install();
         match mode {
-            Mode::Desktop => {
-                wallpaper::build(app);
-                panels::build_menu_bar(app);
-                panels::build_dock(app);
-            }
+            Mode::Desktop => desktop::start(app, theme),
             Mode::Launcher => launcher::build(app),
             Mode::About => about::build(app),
         }
@@ -68,26 +66,37 @@ fn main() -> glib::ExitCode {
     app.run_with_args::<&str>(&[])
 }
 
-/// Built-in theme first, then the system theme file, then the user's own CSS on top.
-fn load_theme() {
-    let Some(display) = gdk::Display::default() else { return };
+/// The three CSS layers. The generated and user layers can be reloaded at any time.
+pub struct Theme {
+    generated: gtk::CssProvider,
+    user: gtk::CssProvider,
+}
 
-    let builtin = gtk::CssProvider::new();
-    builtin.load_from_string(DEFAULT_CSS);
-    gtk::style_context_add_provider_for_display(&display, &builtin, gtk::STYLE_PROVIDER_PRIORITY_APPLICATION);
+impl Theme {
+    fn install() -> Self {
+        let display = gdk::Display::default().expect("no display");
+        let add = |provider: &gtk::CssProvider, priority: u32| {
+            gtk::style_context_add_provider_for_display(&display, provider, priority);
+        };
 
-    let system = std::path::Path::new("/usr/share/noros/theme/noros.css");
-    if system.exists() {
-        let provider = gtk::CssProvider::new();
-        provider.load_from_path(system);
-        gtk::style_context_add_provider_for_display(&display, &provider, gtk::STYLE_PROVIDER_PRIORITY_APPLICATION + 1);
+        let base = gtk::CssProvider::new();
+        base.load_from_string(BASE_CSS);
+        add(&base, gtk::STYLE_PROVIDER_PRIORITY_APPLICATION);
+
+        let theme = Self {
+            generated: gtk::CssProvider::new(),
+            user: gtk::CssProvider::new(),
+        };
+        add(&theme.generated, gtk::STYLE_PROVIDER_PRIORITY_APPLICATION + 1);
+        add(&theme.user, gtk::STYLE_PROVIDER_PRIORITY_USER);
+        theme.reload(&lys::Config::load());
+        theme
     }
 
-    let user = glib::user_config_dir().join("noros").join("theme.css");
-    if user.exists() {
-        let provider = gtk::CssProvider::new();
-        provider.load_from_path(&user);
-        gtk::style_context_add_provider_for_display(&display, &provider, gtk::STYLE_PROVIDER_PRIORITY_USER);
+    pub fn reload(&self, config: &lys::Config) {
+        self.generated.load_from_string(&lys::shell_css(config));
+        let user_css = std::fs::read_to_string(lys::user_css_path()).unwrap_or_default();
+        self.user.load_from_string(&user_css);
     }
 }
 

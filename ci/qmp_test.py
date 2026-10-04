@@ -98,6 +98,36 @@ def main():
     qmp.keys("ret")
     time.sleep(settle)
     qmp.screenshot(f"{a.out}/4-about.png")
+
+    # Close About and the terminal, then visit each 0.2 app.
+    qmp.keys("meta_l", "q")
+    time.sleep(2)
+    qmp.keys("meta_l", "q")
+    time.sleep(2)
+
+    def launch(query):
+        qmp.keys("meta_l", "spc")
+        time.sleep(settle)
+        qmp.type(query)
+        time.sleep(2)
+        qmp.keys("ret")
+        time.sleep(settle * 1.5)
+
+    launch("settings")
+    qmp.screenshot(f"{a.out}/5-settings.png")
+    qmp.keys("meta_l", "q")
+    time.sleep(2)
+
+    qmp.keys("meta_l", "e")
+    time.sleep(settle * 1.5)
+    qmp.screenshot(f"{a.out}/6-files.png")
+    qmp.keys("meta_l", "q")
+    time.sleep(2)
+
+    launch("text editor")
+    qmp.type("hei fra noros")
+    time.sleep(2)
+    qmp.screenshot(f"{a.out}/7-text.png")
     return 0
 
 

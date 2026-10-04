@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Settings
+Comment=Change how NorOS looks and works
+Exec=noros-settings
+Icon=emblem-system-symbolic
+Terminal=false
+Categories=Settings;System;
+Keywords=preferences;theme;wallpaper;dock;appearance;

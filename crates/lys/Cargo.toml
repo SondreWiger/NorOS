@@ -1,0 +1,10 @@
+[package]
+name = "lys"
+description = "NorOS theme engine: the user's look-and-layout settings and the CSS generated from them"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+toml = "1"

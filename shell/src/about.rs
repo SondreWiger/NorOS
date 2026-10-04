@@ -74,7 +74,6 @@ pub fn build(app: &gtk::Application) {
         let v = gtk::Label::new(Some(&value));
         v.add_css_class("about-value");
         v.set_xalign(0.0);
-        v.set_selectable(true);
         grid.attach(&k, 0, i as i32, 1, 1);
         grid.attach(&v, 1, i as i32, 1, 1);
     }

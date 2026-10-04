@@ -1,0 +1,9 @@
+[package]
+name = "noros-text"
+description = "NorOS text editor"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+gtk = { workspace = true }

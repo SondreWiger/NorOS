@@ -6,7 +6,7 @@ use std::f64::consts::PI;
 use gtk::{cairo, prelude::*};
 use gtk4_layer_shell::{Edge, KeyboardMode, Layer, LayerShell};
 
-pub fn build(app: &gtk::Application) {
+pub fn build(app: &gtk::Application, config: &lys::Config) -> gtk::ApplicationWindow {
     let window = gtk::ApplicationWindow::new(app);
     window.add_css_class("noros-wallpaper");
     window.init_layer_shell();
@@ -18,21 +18,61 @@ pub fn build(app: &gtk::Application) {
         window.set_anchor(edge, true);
     }
 
-    let user_image = ["png", "jpg", "jpeg", "webp"]
-        .iter()
-        .map(|ext| gtk::glib::user_config_dir().join("noros").join(format!("wallpaper.{ext}")))
-        .find(|p| p.exists());
-
-    if let Some(path) = user_image {
-        let picture = gtk::Picture::for_filename(path);
+    let choice = config.desktop.wallpaper.as_str();
+    let image = std::path::Path::new(choice);
+    if image.is_absolute() && image.exists() {
+        let picture = gtk::Picture::for_filename(image);
         picture.set_content_fit(gtk::ContentFit::Cover);
         window.set_child(Some(&picture));
     } else {
+        let scene = Scene::named(choice);
         let area = gtk::DrawingArea::new();
-        area.set_draw_func(|_, cr, w, h| draw_aurora(cr, w as f64, h as f64));
+        area.set_draw_func(move |_, cr, w, h| draw(cr, w as f64, h as f64, &scene));
         window.set_child(Some(&area));
     }
     window.present();
+    window
+}
+
+type Rgb = (f64, f64, f64);
+
+/// Colors for one of the drawn wallpapers.
+struct Scene {
+    sky: [Rgb; 3],
+    ribbons: [Rgb; 4],
+    mountains: [Rgb; 3],
+    stars: bool,
+}
+
+impl Scene {
+    fn named(name: &str) -> Self {
+        match name {
+            "aurora-violet" => Scene {
+                sky: [(0.035, 0.020, 0.075), (0.090, 0.055, 0.180), (0.180, 0.100, 0.290)],
+                ribbons: [(0.69, 0.49, 1.0), (0.52, 0.45, 0.95), (0.90, 0.45, 0.85), (0.24, 0.86, 0.80)],
+                mountains: [(0.110, 0.075, 0.200), (0.075, 0.050, 0.145), (0.040, 0.025, 0.085)],
+                stars: true,
+            },
+            "glacier" => Scene {
+                sky: [(0.55, 0.72, 0.88), (0.72, 0.84, 0.93), (0.90, 0.95, 0.98)],
+                ribbons: [(1.0, 1.0, 1.0), (0.80, 0.92, 1.0), (0.95, 0.98, 1.0), (0.70, 0.85, 0.95)],
+                mountains: [(0.62, 0.72, 0.82), (0.45, 0.56, 0.68), (0.28, 0.36, 0.47)],
+                stars: false,
+            },
+            "midnight" => Scene {
+                sky: [(0.16, 0.12, 0.30), (0.62, 0.36, 0.42), (0.98, 0.70, 0.42)],
+                ribbons: [(1.0, 0.80, 0.50), (0.98, 0.60, 0.50), (1.0, 0.90, 0.70), (0.85, 0.50, 0.60)],
+                mountains: [(0.30, 0.18, 0.30), (0.20, 0.12, 0.22), (0.10, 0.06, 0.12)],
+                stars: false,
+            },
+            _ => Scene {
+                sky: [(0.020, 0.031, 0.067), (0.055, 0.094, 0.180), (0.090, 0.161, 0.267)],
+                ribbons: [(0.24, 0.86, 0.59), (0.20, 0.78, 0.82), (0.45, 0.95, 0.65), (0.52, 0.45, 0.95)],
+                mountains: [(0.075, 0.129, 0.208), (0.047, 0.086, 0.149), (0.024, 0.043, 0.082)],
+                stars: true,
+            },
+        }
+    }
 }
 
 /// Tiny deterministic random source so the sky looks the same on every boot.
@@ -45,18 +85,19 @@ impl Lcg {
     }
 }
 
-fn draw_aurora(cr: &cairo::Context, w: f64, h: f64) {
+fn draw(cr: &cairo::Context, w: f64, h: f64, scene: &Scene) {
     // Night sky.
     let sky = cairo::LinearGradient::new(0.0, 0.0, 0.0, h);
-    sky.add_color_stop_rgb(0.0, 0.020, 0.031, 0.067);
-    sky.add_color_stop_rgb(0.55, 0.055, 0.094, 0.180);
-    sky.add_color_stop_rgb(1.0, 0.090, 0.161, 0.267);
+    for (stop, (r, g, b)) in [0.0, 0.55, 1.0].into_iter().zip(scene.sky) {
+        sky.add_color_stop_rgb(stop, r, g, b);
+    }
     let _ = cr.set_source(&sky);
     let _ = cr.paint();
 
     // Stars, denser near the top.
     let mut rng = Lcg(0x4e6f_724f);
-    for _ in 0..((w * h) / 9000.0) as usize {
+    let star_count = if scene.stars { ((w * h) / 9000.0) as usize } else { 0 };
+    for _ in 0..star_count {
         let x = rng.next() * w;
         let y = rng.next().powf(1.6) * h * 0.7;
         let r = 0.4 + rng.next() * 1.1;
@@ -67,13 +108,9 @@ fn draw_aurora(cr: &cairo::Context, w: f64, h: f64) {
     }
 
     // Aurora: soft ribbons, each a vertical gradient fading upward.
-    let ribbons: [(f64, f64, (f64, f64, f64), f64); 4] = [
-        (0.30, 0.16, (0.24, 0.86, 0.59), 0.55),
-        (0.38, 0.12, (0.20, 0.78, 0.82), 0.40),
-        (0.25, 0.10, (0.45, 0.95, 0.65), 0.30),
-        (0.44, 0.09, (0.52, 0.45, 0.95), 0.22),
-    ];
-    for (i, (base, height, (r, g, b), alpha)) in ribbons.into_iter().enumerate() {
+    let shapes: [(f64, f64, f64); 4] = [(0.30, 0.16, 0.55), (0.38, 0.12, 0.40), (0.25, 0.10, 0.30), (0.44, 0.09, 0.22)];
+    let ribbons = shapes.into_iter().zip(scene.ribbons).map(|((base, height, alpha), color)| (base, height, color, alpha));
+    for (i, (base, height, (r, g, b), alpha)) in ribbons.enumerate() {
         let base_y = h * base;
         let top_y = base_y - h * height;
         let phase = i as f64 * 1.7;
@@ -105,12 +142,8 @@ fn draw_aurora(cr: &cairo::Context, w: f64, h: f64) {
     }
 
     // Mountains: three ranges, darker toward the viewer.
-    let ranges: [(f64, f64, (f64, f64, f64), u32); 3] = [
-        (0.70, 0.20, (0.075, 0.129, 0.208), 11),
-        (0.78, 0.17, (0.047, 0.086, 0.149), 9),
-        (0.88, 0.14, (0.024, 0.043, 0.082), 7),
-    ];
-    for (layer, (base, peak, (r, g, b), peaks)) in ranges.into_iter().enumerate() {
+    let ranges: [(f64, f64, u32); 3] = [(0.70, 0.20, 11), (0.78, 0.17, 9), (0.88, 0.14, 7)];
+    for (layer, ((base, peak, peaks), (r, g, b))) in ranges.into_iter().zip(scene.mountains).enumerate() {
         let mut rng = Lcg(0x6672_6a00 + layer as u32);
         cr.new_path();
         cr.move_to(0.0, h);
