@@ -432,6 +432,36 @@ pub fn apply_to_apps(config: &Config) -> io::Result<()> {
     Ok(())
 }
 
+/// GTK on Wayland takes the window-button layout and color scheme from GSettings,
+/// and updates running apps the moment they change.
+#[cfg(feature = "gsettings")]
+pub fn apply_gsettings(config: &Config) {
+    use gio::prelude::*;
+
+    let set = |schema: &str, key: &str, value: &str| {
+        let Some(source) = gio::SettingsSchemaSource::default() else { return };
+        let Some(found) = source.lookup(schema, true) else { return };
+        if !found.has_key(key) {
+            return;
+        }
+        let settings = gio::Settings::new(schema);
+        if settings.string(key) != value {
+            let _ = settings.set_string(key, value);
+        }
+    };
+    let layout = match config.windows.buttons_side {
+        Side::Left => "close,minimize,maximize:",
+        Side::Right => ":minimize,maximize,close",
+    };
+    set("org.gnome.desktop.wm.preferences", "button-layout", layout);
+    let scheme = match config.appearance.mode {
+        Mode::Dark => "prefer-dark",
+        Mode::Light => "prefer-light",
+    };
+    set("org.gnome.desktop.interface", "color-scheme", scheme);
+    gio::Settings::sync();
+}
+
 fn write_if_changed(path: &Path, content: &str) -> io::Result<()> {
     if fs::read_to_string(path).map(|old| old == content).unwrap_or(false) {
         return Ok(());

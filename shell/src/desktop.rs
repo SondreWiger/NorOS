@@ -19,6 +19,7 @@ struct Desktop {
 
 pub fn start(app: &gtk::Application, theme: Theme) {
     let config = lys::Config::load();
+    lys::apply_gsettings(&config);
     // Keep GTK apps in step with the desktop (accent, light/dark, window buttons).
     if let Err(err) = lys::apply_to_apps(&config) {
         eprintln!("noros-shell: could not write app theme: {err}");
@@ -54,6 +55,7 @@ impl Desktop {
     fn reload(&self) {
         let config = lys::Config::load();
         self.theme.reload(&config);
+        lys::apply_gsettings(&config);
         if let Err(err) = lys::apply_to_apps(&config) {
             eprintln!("noros-shell: could not write app theme: {err}");
         }

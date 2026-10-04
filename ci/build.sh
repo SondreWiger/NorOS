@@ -33,7 +33,9 @@ done
 install -Dm644 shell/theme/noros.css        out/stage/usr/share/noros/theme/noros.css
 
 cd image
-mkosi --extra-tree="$PWD/../out/stage" --force build
+# A plain directory tree is enough for the live ISO and needs far less disk
+# than a full disk image. Pass FORMAT=disk for an installable disk image.
+mkosi --extra-tree="$PWD/../out/stage" --format="${FORMAT:-directory}" --force build
 cd ..
 bash ci/make-iso.sh
 # The ISO is the deliverable; drop the large intermediate images.

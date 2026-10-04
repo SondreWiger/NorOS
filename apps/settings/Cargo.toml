@@ -7,4 +7,4 @@ license.workspace = true
 
 [dependencies]
 gtk = { workspace = true }
-lys = { workspace = true }
+lys = { workspace = true, features = ["gsettings"] }

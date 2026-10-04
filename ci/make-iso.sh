@@ -16,12 +16,19 @@ case "$(uname -m)" in
 esac
 
 WORK=out/iso
-rm -rf "$WORK" && mkdir -p "$WORK" /mnt/noros
-# Mount the root partition straight out of the disk image (partition 2).
-LOOP=$(losetup --find --show --read-only --partscan out/noros.raw)
-trap 'umount /mnt/noros || true; losetup -d "$LOOP" || true' EXIT
-udevadm settle || sleep 2
-mount -o ro "${LOOP}p2" /mnt/noros
+rm -rf "$WORK" && mkdir -p "$WORK"
+if [ -d out/noros ]; then
+    # Directory build: the tree is the root filesystem as-is.
+    ROOTFS=out/noros
+else
+    # Disk image build: mount the root partition (partition 2).
+    mkdir -p /mnt/noros
+    LOOP=$(losetup --find --show --read-only --partscan out/noros.raw)
+    trap 'umount /mnt/noros || true; losetup -d "$LOOP" || true' EXIT
+    udevadm settle || sleep 2
+    mount -o ro "${LOOP}p2" /mnt/noros
+    ROOTFS=/mnt/noros
+fi
 
 cat > "$WORK/grub.cfg" <<CFG
 search --no-floppy --label $LABEL --set=root
@@ -50,7 +57,8 @@ xorriso -as mkisofs \
     -append_partition 2 0xef "$WORK/efiboot.img" -appended_part_as_gpt \
     -e --interval:appended_partition_2:all:: -no-emul-boot \
     -graft-points \
-    /=/mnt/noros \
+    -m "$ROOTFS/boot/EFI" -m "$ROOTFS/efi" \
+    /="$ROOTFS" \
     /live/vmlinuz=out/noros.vmlinuz \
     /live/initrd=out/noros.initrd
 

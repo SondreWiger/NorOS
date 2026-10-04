@@ -1,0 +1,10 @@
+# NorOS defaults. Users change these in Settings.
+[org.gnome.desktop.wm.preferences]
+button-layout='close,minimize,maximize:'
+
+[org.gnome.desktop.interface]
+color-scheme='prefer-dark'
+font-name='Inter 11'
+icon-theme='Adwaita'
+cursor-theme='Adwaita'
+cursor-size=24

@@ -38,6 +38,7 @@ fn update(state: &State, change: impl FnOnce(&mut Config)) {
     if let Err(err) = lys::apply_to_apps(&config) {
         eprintln!("noros-settings: could not update app theme: {err}");
     }
+    lys::apply_gsettings(&config);
 }
 
 fn main() -> glib::ExitCode {
@@ -384,7 +385,7 @@ fn desktop_page(state: &State, window: &gtk::ApplicationWindow) -> gtk::Scrolled
 }
 
 fn windows_page(state: &State) -> gtk::ScrolledWindow {
-    let (scroller, content) = page("Windows", "How window title bars look. Apps follow when they are next opened.");
+    let (scroller, content) = page("Windows", "How window title bars look. Open apps update right away.");
     let config = state.borrow().clone();
 
     let g = group(&content, "Window Buttons");

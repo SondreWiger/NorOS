@@ -200,11 +200,12 @@ fn new_window(app: &gtk::Application, start: gio::File) {
         let label = gtk::Label::new(None);
         label.add_css_class("file-name");
         label.set_wrap(true);
-        label.set_wrap_mode(gtk::pango::WrapMode::WordChar);
+        label.set_wrap_mode(gtk::pango::WrapMode::Word);
         label.set_lines(2);
         label.set_ellipsize(gtk::pango::EllipsizeMode::End);
         label.set_justify(gtk::Justification::Center);
-        label.set_max_width_chars(14);
+        label.set_width_chars(12);
+        label.set_max_width_chars(12);
         tile.append(&image);
         tile.append(&label);
         item.set_child(Some(&tile));

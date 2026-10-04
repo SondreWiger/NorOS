@@ -36,7 +36,7 @@ case "$ARCH" in
     *) echo "unknown arch $ARCH"; exit 2 ;;
 esac
 
-QEMU+=(-m 4096 -smp 4 -nic none
+QEMU+=(-m "${NOROS_TEST_MEM:-4096}" -smp 4 -nic none
        -device virtio-scsi-pci,id=scsi
        -drive if=none,id=cd,media=cdrom,readonly=on,format=raw,file="$ISO"
        -device scsi-cd,drive=cd,bus=scsi.0

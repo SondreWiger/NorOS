@@ -237,11 +237,19 @@ fn new_window(app: &gtk::Application, file: Option<gio::File>) {
         buffer.connect_modified_changed(move |_| editor.refresh_title());
     }
     {
-        let position = position.clone();
-        buffer.connect_mark_set(move |buffer, iter, mark| {
-            if mark.name().as_deref() == Some("insert") {
-                let _ = buffer;
+        // Follow the cursor whether it moves by typing, clicking or arrow keys.
+        let update = {
+            let position = position.clone();
+            move |buffer: &gtk::TextBuffer| {
+                let iter = buffer.iter_at_mark(&buffer.get_insert());
                 position.set_text(&format!("Line {}, Column {}", iter.line() + 1, iter.line_offset() + 1));
+            }
+        };
+        let on_change = update.clone();
+        buffer.connect_changed(move |b| on_change(b));
+        buffer.connect_mark_set(move |b, _, mark| {
+            if mark.name().as_deref() == Some("insert") {
+                update(b);
             }
         });
     }

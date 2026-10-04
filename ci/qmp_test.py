@@ -34,6 +34,17 @@ class Qmp:
     def keys(self, *names, hold=120):
         self.cmd("send-key", keys=[{"type": "qcode", "data": n} for n in names], **{"hold-time": hold})
 
+    def click(self, x, y, width=1440, height=900):
+        """Left-click at screen pixel (x, y) with the absolute-pointer tablet."""
+        scale = lambda v, size: int(v * 32767 / (size - 1))
+        move = [{"type": "abs", "data": {"axis": "x", "value": scale(x, width)}},
+                {"type": "abs", "data": {"axis": "y", "value": scale(y, height)}}]
+        self.cmd("input-send-event", events=move)
+        time.sleep(0.3)
+        for down in (True, False):
+            self.cmd("input-send-event", events=[{"type": "btn", "data": {"down": down, "button": "left"}}])
+            time.sleep(0.15)
+
     def type(self, text):
         for ch in text:
             self.keys("spc" if ch == " " else ch)
@@ -115,6 +126,9 @@ def main():
 
     launch("settings")
     qmp.screenshot(f"{a.out}/5-settings.png")
+    # Pick the red "Lingonberry" accent; the desktop should restyle itself live.
+    qmp.click(928, 347)
+    time.sleep(settle)
     qmp.keys("meta_l", "q")
     time.sleep(2)
 
@@ -128,6 +142,13 @@ def main():
     qmp.type("hei fra noros")
     time.sleep(2)
     qmp.screenshot(f"{a.out}/7-text.png")
+
+    # The launcher's highlight uses the accent: it should now be red.
+    qmp.keys("meta_l", "spc")
+    time.sleep(settle)
+    qmp.type("files")
+    time.sleep(3)
+    qmp.screenshot(f"{a.out}/8-accent-live.png")
     return 0
 
 

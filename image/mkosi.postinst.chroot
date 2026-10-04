@@ -18,6 +18,9 @@ for group in sudo video render input; do
     fi
 done
 
+# Desktop-wide defaults for GTK (window buttons, dark mode) live in GSettings.
+glib-compile-schemas /usr/share/glib-2.0/schemas
+
 systemctl enable noros-session.service
 systemctl enable systemd-networkd.service systemd-resolved.service
 systemctl set-default graphical.target

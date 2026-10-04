@@ -8,3 +8,8 @@ license.workspace = true
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 toml = "1"
+gio = { version = "0.22", optional = true }
+
+[features]
+# Push settings into GSettings, which GTK on Wayland reads live.
+gsettings = ["dep:gio"]
