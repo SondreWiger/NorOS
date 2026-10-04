@@ -146,7 +146,7 @@ pub fn create_at(_root: &Path, esp: &Path, description: &str, automatic: bool) -
 fn write_boot_entry(esp: &Path, snapshot: &Snapshot) -> Result<()> {
     let current = fs::read_to_string(esp.join("loader/entries/noros-current.conf"))
         .map_err(|_| Error("no NorOS boot entry found on the EFI partition".into()))?;
-    let mut entry = format!("title   NorOS snapshot #{} — {}\nsort-key 1-snapshot-{:06}\n", snapshot.id, snapshot.description, u32::MAX - snapshot.id);
+    let mut entry = format!("title   NorOS snapshot #{} - {}\nsort-key 1-snapshot-{:06}\n", snapshot.id, snapshot.description, u32::MAX - snapshot.id);
     for line in current.lines() {
         if line.starts_with("linux") || line.starts_with("initrd") {
             entry.push_str(line);

@@ -275,7 +275,9 @@ pub fn root_options(fs_device: &str, root_part: &str, subvol: &str, encrypted: b
     Ok(options.join(" "))
 }
 
-pub const QUIET: &str = "quiet loglevel=3 systemd.show_status=auto rd.udev.log_level=3";
+/// `console=tty0` puts the disk-unlock prompt on the screen even on machines
+/// (like ARM virtual machines) that would otherwise default to a serial port.
+pub const QUIET: &str = "console=tty0 quiet loglevel=3 systemd.show_status=auto rd.udev.log_level=3";
 
 fn install_bootloader(opts: &Options, fs_device: &str, root_part: &str) -> Result<()> {
     let esp = PathBuf::from(format!("{TARGET}/efi"));
