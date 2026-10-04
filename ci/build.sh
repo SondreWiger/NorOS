@@ -21,11 +21,12 @@ rustup update stable --no-self-update
 cargo --version
 
 cargo build --release
+TARGET="${CARGO_TARGET_DIR:-target}"
 
 # Stage our files into an extra tree for the image.
 rm -rf out/stage
-install -Dm755 target/release/fjord        out/stage/usr/bin/fjord
-install -Dm755 target/release/noros-shell  out/stage/usr/bin/noros-shell
+install -Dm755 "$TARGET"/release/fjord        out/stage/usr/bin/fjord
+install -Dm755 "$TARGET"/release/noros-shell  out/stage/usr/bin/noros-shell
 install -Dm644 shell/theme/noros.css        out/stage/usr/share/noros/theme/noros.css
 
 cd image
