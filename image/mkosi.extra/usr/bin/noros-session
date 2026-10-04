@@ -1,0 +1,19 @@
+#!/bin/sh
+# Starts the NorOS desktop for the logged-in user.
+
+export XDG_CURRENT_DESKTOP=NorOS
+export XDG_SESSION_DESKTOP=NorOS
+export XCURSOR_THEME=Adwaita
+export XCURSOR_SIZE=24
+export MOZ_ENABLE_WAYLAND=1
+export QT_QPA_PLATFORM="wayland;xcb"
+export SDL_VIDEODRIVER=wayland
+
+# Virtual machines usually have no 3D acceleration: render on the CPU.
+# Set NOROS_HW_ACCEL=1 to skip this (e.g. a VM with virgl).
+if [ -z "$NOROS_HW_ACCEL" ] && systemd-detect-virt --vm --quiet; then
+    export LIBGL_ALWAYS_SOFTWARE=1
+    export GSK_RENDERER=cairo
+fi
+
+exec fjord

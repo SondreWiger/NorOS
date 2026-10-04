@@ -1,0 +1,27 @@
+[Unit]
+Description=NorOS desktop session (Fjord)
+After=systemd-user-sessions.service systemd-logind.service getty@tty1.service
+Conflicts=getty@tty1.service
+ConditionPathExists=/dev/tty0
+
+[Service]
+Type=simple
+User=noros
+PAMName=login
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+TTYVTDisallocate=yes
+StandardInput=tty-fail
+StandardOutput=journal
+StandardError=journal
+UtmpIdentifier=tty1
+UtmpMode=user
+Environment=XDG_SESSION_TYPE=wayland
+Environment=XDG_SESSION_CLASS=user
+ExecStart=/usr/bin/noros-session
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=graphical.target

@@ -1,0 +1,82 @@
+name: Build NorOS
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ["docs/**", "website/**", "**.md"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  image:
+    name: Image (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-24.04
+            qemu: qemu-system-x86 ovmf
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+            qemu: qemu-system-arm qemu-efi-aarch64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 120
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore Rust cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            .ci-cache/cargo
+            .ci-cache/rustup
+            target
+          key: rust-${{ matrix.arch }}-${{ hashFiles('**/Cargo.toml', 'Cargo.lock') }}
+          restore-keys: rust-${{ matrix.arch }}-
+
+      - name: Restore package cache
+        uses: actions/cache@v4
+        with:
+          path: .ci-cache/mkosi
+          key: mkosi-${{ matrix.arch }}-${{ hashFiles('image/**') }}
+          restore-keys: mkosi-${{ matrix.arch }}-
+
+      - name: Build binaries and disk image
+        run: |
+          docker run --rm --privileged \
+            -v "$PWD:/src" -w /src \
+            -e CARGO_HOME=/src/.ci-cache/cargo \
+            -e RUSTUP_HOME=/src/.ci-cache/rustup \
+            debian:trixie bash ci/build.sh
+          sudo chown -R "$(id -u):$(id -g)" .
+
+      - name: Install QEMU
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ${{ matrix.qemu }}
+          if [ -e /dev/kvm ]; then
+            echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm.rules
+            sudo udevadm control --reload-rules
+            sudo udevadm trigger --name-match=kvm
+          fi
+
+      - name: Boot test
+        run: bash ci/boot-test.sh ${{ matrix.arch }}
+
+      - name: Upload screenshots and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: boot-test-${{ matrix.arch }}
+          path: |
+            out/boot-test/*.png
+            out/boot-test/serial.log
+            Cargo.lock
+          retention-days: 14
+          if-no-files-found: warn

@@ -4,3 +4,4 @@
 *.iso
 *.qcow2
 *.img
+.ci-cache/

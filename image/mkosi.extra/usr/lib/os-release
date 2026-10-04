@@ -1,0 +1,8 @@
+PRETTY_NAME="NorOS 0.1 (Første lys)"
+NAME="NorOS"
+VERSION_ID="0.1"
+VERSION="0.1 (Første lys)"
+VERSION_CODENAME=forste-lys
+ID=noros
+ID_LIKE=debian
+HOME_URL="https://sondrewiger.github.io/noros/"

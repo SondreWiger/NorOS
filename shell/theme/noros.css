@@ -1,0 +1,225 @@
+/*
+ * NorOS default theme ("Fjord Night").
+ *
+ * Override anything here by writing ~/.config/noros/theme.css.
+ * Colors:
+ *   night   #0B1220   deepest background
+ *   fjord   #13233F   panels
+ *   ice     #E8EEF7   text
+ *   aurora  #3DDC97   accent
+ *   glacier #7FD1FF   secondary accent
+ */
+
+@define-color noros_night #0B1220;
+@define-color noros_fjord #13233F;
+@define-color noros_ice #E8EEF7;
+@define-color noros_mist #9AA8BC;
+@define-color noros_aurora #3DDC97;
+@define-color noros_glacier #7FD1FF;
+
+/* ── Layer windows are transparent canvases ─────────────────────── */
+
+window.noros-panel,
+window.noros-launcher,
+window.noros-wallpaper {
+  background: transparent;
+  box-shadow: none;
+}
+
+/* ── Menu bar ──────────────────────────────────────────────────── */
+
+.menubar {
+  min-height: 28px;
+  padding: 0 10px;
+  background: alpha(@noros_night, 0.78);
+  border-bottom: 1px solid alpha(white, 0.06);
+  color: @noros_ice;
+  font-family: "Inter", "Cantarell", sans-serif;
+  font-size: 13px;
+}
+
+.menubar button {
+  min-height: 22px;
+  padding: 0 10px;
+  margin: 3px 0;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  color: @noros_ice;
+}
+
+.menubar button:hover,
+.menubar button:checked {
+  background: alpha(white, 0.12);
+}
+
+.menubar-logo label {
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.menubar-title {
+  font-weight: 600;
+  padding: 0 8px;
+}
+
+.menubar-clock {
+  font-weight: 500;
+  font-feature-settings: "tnum";
+  padding: 0 6px 0 10px;
+}
+
+/* ── Menus ─────────────────────────────────────────────────────── */
+
+popover.noros-menu > contents {
+  padding: 5px;
+  min-width: 230px;
+  border-radius: 10px;
+  background: alpha(@noros_fjord, 0.97);
+  border: 1px solid alpha(white, 0.08);
+  box-shadow: 0 12px 36px alpha(black, 0.45);
+  color: @noros_ice;
+}
+
+.menu-item {
+  min-height: 26px;
+  padding: 2px 10px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  color: @noros_ice;
+  font-weight: 500;
+}
+
+.menu-item:hover {
+  background: @noros_aurora;
+  color: @noros_night;
+}
+
+.menu-item:disabled {
+  color: alpha(@noros_ice, 0.35);
+}
+
+popover.noros-menu separator {
+  margin: 5px 8px;
+  background: alpha(white, 0.1);
+}
+
+/* ── Dock ──────────────────────────────────────────────────────── */
+
+.dock {
+  padding: 8px 10px;
+  border-radius: 20px;
+  background: alpha(@noros_fjord, 0.72);
+  border: 1px solid alpha(white, 0.09);
+  box-shadow: 0 10px 30px alpha(black, 0.35);
+}
+
+.dock-item {
+  min-width: 52px;
+  min-height: 52px;
+  padding: 0;
+  border-radius: 14px;
+  border: none;
+  color: white;
+  box-shadow: inset 0 1px alpha(white, 0.25), 0 2px 6px alpha(black, 0.3);
+  transition: all 120ms ease-out;
+}
+
+.dock-item:hover {
+  margin-top: -6px;
+  margin-bottom: 6px;
+}
+
+.dock-item:active {
+  filter: brightness(0.85);
+}
+
+.tile-search   { background: linear-gradient(160deg, #4A5B78, #222D42); }
+.tile-terminal { background: linear-gradient(160deg, #23324D, #0B1220); color: @noros_aurora; }
+.tile-about    { background: linear-gradient(160deg, #3DDC97, #1C8C7A); }
+
+/* ── Launcher ──────────────────────────────────────────────────── */
+
+.launcher {
+  padding: 12px;
+  border-radius: 16px;
+  background: alpha(@noros_fjord, 0.96);
+  border: 1px solid alpha(white, 0.1);
+  box-shadow: 0 24px 64px alpha(black, 0.55);
+  color: @noros_ice;
+  font-family: "Inter", "Cantarell", sans-serif;
+}
+
+.launcher-search {
+  min-height: 44px;
+  font-size: 20px;
+  border-radius: 10px;
+  border: none;
+  background: alpha(white, 0.06);
+  color: @noros_ice;
+  box-shadow: none;
+}
+
+.launcher-list {
+  background: transparent;
+}
+
+.launcher-row {
+  padding: 7px 10px;
+  border-radius: 9px;
+  color: @noros_ice;
+}
+
+.launcher-row:selected {
+  background: @noros_aurora;
+  color: @noros_night;
+}
+
+.launcher-title {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.launcher-subtitle {
+  font-size: 12px;
+  opacity: 0.65;
+}
+
+/* ── About window ──────────────────────────────────────────────── */
+
+.about {
+  padding: 28px 32px 30px;
+}
+
+.about-logo {
+  font-family: "Inter", sans-serif;
+  font-size: 46px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+}
+
+.about-version {
+  font-size: 14px;
+  opacity: 0.7;
+  margin-bottom: 18px;
+}
+
+.about-key {
+  opacity: 0.6;
+  font-weight: 500;
+}
+
+.about-value {
+  font-weight: 600;
+}
+
+.about-promise {
+  margin-top: 22px;
+  padding: 12px 14px;
+  border-left: 3px solid @noros_aurora;
+  background: alpha(@noros_aurora, 0.08);
+  font-weight: 500;
+}

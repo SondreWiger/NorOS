@@ -1,0 +1,33 @@
+#!/bin/bash
+# Builds Fjord, noros-shell and the bootable NorOS disk image.
+# Runs inside a privileged debian:trixie container (see .github/workflows/build.yml).
+set -euxo pipefail
+
+export DEBIAN_FRONTEND=noninteractive
+apt-get update
+apt-get install -y --no-install-recommends \
+    ca-certificates curl git build-essential pkg-config \
+    libudev-dev libinput-dev libseat-dev libgbm-dev libdrm-dev libxkbcommon-dev \
+    libgtk-4-dev libgtk4-layer-shell-dev \
+    mkosi systemd-ukify systemd-repart systemd-boot-efi \
+    apt debian-archive-keyring dosfstools mtools e2fsprogs cpio zstd kmod python3
+
+# Rust toolchain (cached between runs via RUSTUP_HOME / CARGO_HOME).
+if ! command -v cargo >/dev/null && [ ! -x "$CARGO_HOME/bin/cargo" ]; then
+    curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable --no-modify-path
+fi
+export PATH="$CARGO_HOME/bin:$PATH"
+rustup update stable --no-self-update
+cargo --version
+
+cargo build --release
+
+# Stage our files into an extra tree for the image.
+rm -rf out/stage
+install -Dm755 target/release/fjord        out/stage/usr/bin/fjord
+install -Dm755 target/release/noros-shell  out/stage/usr/bin/noros-shell
+install -Dm644 shell/theme/noros.css        out/stage/usr/share/noros/theme/noros.css
+
+cd image
+mkosi --extra-tree="$PWD/../out/stage" --force build
+ls -lh ../out
