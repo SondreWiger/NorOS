@@ -204,6 +204,7 @@ impl Default for Windows {
 
 pub const DEFAULT_DOCK_APPS: &[&str] = &[
     "noros-search",
+    "no.noros.Web.desktop",
     "no.noros.Files.desktop",
     "foot.desktop",
     "no.noros.Text.desktop",

@@ -1,8 +1,8 @@
-PRETTY_NAME="NorOS 0.4 (Vakt)"
+PRETTY_NAME="NorOS 0.5 (Bro)"
 NAME="NorOS"
-VERSION_ID="0.4"
-VERSION="0.4 (Vakt)"
-VERSION_CODENAME=vakt
+VERSION_ID="0.5"
+VERSION="0.5 (Bro)"
+VERSION_CODENAME=bro
 ID=noros
 ID_LIKE=debian
 HOME_URL="https://sondrewiger.github.io/noros/"

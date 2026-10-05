@@ -38,8 +38,9 @@ pub fn build_menu_bar(app: &gtk::Application, config: &Config) -> gtk::Applicati
     left.append(&title);
     bar.set_start_widget(Some(&left));
 
-    // Right: search and the clock.
+    // Right: volume, search and the clock.
     let right = gtk::Box::new(gtk::Orientation::Horizontal, 2);
+    right.append(&volume_control(config.menu_bar.position));
     let search = gtk::Button::from_icon_name("system-search-symbolic");
     search.add_css_class("menubar-item");
     search.set_tooltip_text(Some("Search  (Super + Space)"));
@@ -89,6 +90,106 @@ fn update_clock(label: &gtk::Label, (date, time): &(Option<&'static str>, &'stat
         None => tidy(time),
     };
     label.set_text(&text);
+}
+
+/// Current output volume (0.0–1.5) and mute state, from PipeWire's WirePlumber.
+fn read_volume() -> Option<(f64, bool)> {
+    let out = std::process::Command::new("wpctl").args(["get-volume", "@DEFAULT_AUDIO_SINK@"]).output().ok()?;
+    let text = String::from_utf8_lossy(&out.stdout);
+    let value = text.split_whitespace().nth(1)?.parse::<f64>().ok()?;
+    Some((value, text.contains("MUTED")))
+}
+
+fn volume_icon(volume: Option<(f64, bool)>) -> &'static str {
+    match volume {
+        None => "audio-volume-muted-symbolic",
+        Some((_, true)) => "audio-volume-muted-symbolic",
+        Some((v, _)) if v < 0.34 => "audio-volume-low-symbolic",
+        Some((v, _)) if v < 0.67 => "audio-volume-medium-symbolic",
+        _ => "audio-volume-high-symbolic",
+    }
+}
+
+/// Speaker icon with a slider. Reads the state each time it opens.
+fn volume_control(position: BarPosition) -> gtk::MenuButton {
+    let button = gtk::MenuButton::new();
+    button.add_css_class("menubar-item");
+    button.set_icon_name(volume_icon(read_volume()));
+    button.set_tooltip_text(Some("Sound"));
+    if position == BarPosition::Bottom {
+        button.set_direction(gtk::ArrowType::Up);
+    }
+
+    let popover = gtk::Popover::new();
+    popover.add_css_class("noros-menu");
+    popover.set_has_arrow(false);
+    let column = gtk::Box::new(gtk::Orientation::Vertical, 8);
+    column.set_margin_top(6);
+    column.set_margin_bottom(6);
+    column.set_margin_start(8);
+    column.set_margin_end(8);
+    let title = gtk::Label::new(Some("Sound"));
+    title.set_xalign(0.0);
+    title.add_css_class("menubar-title");
+    let slider = gtk::Scale::with_range(gtk::Orientation::Horizontal, 0.0, 100.0, 1.0);
+    slider.set_width_request(220);
+    let mute = gtk::CheckButton::with_label("Mute");
+    let status = gtk::Label::new(None);
+    status.set_xalign(0.0);
+    status.add_css_class("menu-item");
+    column.append(&title);
+    column.append(&slider);
+    column.append(&mute);
+    column.append(&status);
+    popover.set_child(Some(&column));
+    button.set_popover(Some(&popover));
+
+    let updating = std::rc::Rc::new(std::cell::Cell::new(false));
+    {
+        let (slider, mute, status, button2, updating) = (slider.clone(), mute.clone(), status.clone(), button.clone(), updating.clone());
+        popover.connect_show(move |_| {
+            updating.set(true);
+            match read_volume() {
+                Some((v, muted)) => {
+                    slider.set_sensitive(true);
+                    mute.set_sensitive(true);
+                    slider.set_value((v * 100.0).round());
+                    mute.set_active(muted);
+                    status.set_text("");
+                }
+                None => {
+                    slider.set_sensitive(false);
+                    mute.set_sensitive(false);
+                    status.set_text("No sound output found");
+                }
+            }
+            button2.set_icon_name(volume_icon(read_volume()));
+            updating.set(false);
+        });
+    }
+    {
+        let (button2, updating) = (button.clone(), updating.clone());
+        slider.connect_value_changed(move |s| {
+            if updating.get() {
+                return;
+            }
+            let value = format!("{:.2}", s.value() / 100.0);
+            let _ = std::process::Command::new("wpctl").args(["set-volume", "@DEFAULT_AUDIO_SINK@", &value]).status();
+            button2.set_icon_name(volume_icon(read_volume()));
+        });
+    }
+    {
+        let button2 = button.clone();
+        mute.connect_toggled(move |m| {
+            if updating.get() {
+                return;
+            }
+            let state = if m.is_active() { "1" } else { "0" };
+            let _ = std::process::Command::new("wpctl").args(["set-mute", "@DEFAULT_AUDIO_SINK@", state]).status();
+            button2.set_icon_name(volume_icon(read_volume()));
+        });
+    }
+    button
 }
 
 /// The ◆ NorOS menu: settings, about, and power controls.
@@ -165,6 +266,7 @@ fn dock_entry(id: &str) -> Option<DockEntry> {
         "no.noros.Text.desktop" => Some(("Text Editor", "tile-text", "accessories-text-editor-symbolic")),
         "no.noros.Settings.desktop" => Some(("Settings", "tile-settings", "emblem-system-symbolic")),
         "no.noros.Privacy.desktop" => Some(("Privacy Center", "tile-privacy", "security-high-symbolic")),
+        "no.noros.Web.desktop" => Some(("Web", "tile-web", "web-browser-symbolic")),
         "noros-about" => Some(("About NorOS", "tile-about", "computer-symbolic")),
         "noros-install" => Some(("Install NorOS", "tile-install", "drive-harddisk-symbolic")),
         _ => None,

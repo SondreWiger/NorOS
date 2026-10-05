@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Install App
+Comment=Install a Flatpak app you downloaded
+Exec=noros-install-app %f
+Icon=system-software-install-symbolic
+Terminal=false
+NoDisplay=true
+MimeType=application/vnd.flatpak.ref;application/vnd.flatpak;application/vnd.flatpak.repo;

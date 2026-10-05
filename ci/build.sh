@@ -8,7 +8,7 @@ apt-get update
 apt-get install -y --no-install-recommends \
     ca-certificates curl git build-essential pkg-config \
     libudev-dev libinput-dev libseat-dev libgbm-dev libdrm-dev libxkbcommon-dev \
-    libgtk-4-dev libgtk4-layer-shell-dev \
+    libgtk-4-dev libgtk4-layer-shell-dev libwebkitgtk-6.0-dev \
     mkosi systemd-ukify systemd-repart systemd-boot-efi \
     apt debian-archive-keyring dosfstools mtools e2fsprogs cpio zstd kmod python3 xorriso grub-common "grub-efi-$(dpkg --print-architecture)-bin"
 
@@ -29,7 +29,7 @@ TARGET="${CARGO_TARGET_DIR:-target}"
 rm -rf out/stage
 install -Dm755 "$TARGET"/release/fjord        out/stage/usr/bin/fjord
 install -Dm755 "$TARGET"/release/noros-shell  out/stage/usr/bin/noros-shell
-for app in noros-settings noros-files noros-text noros-installer noros-install noros-update noros-privacy vaktd; do
+for app in noros-settings noros-files noros-text noros-installer noros-install noros-update noros-privacy noros-web vaktd; do
     install -Dm755 "$TARGET/release/$app" "out/stage/usr/bin/$app"
 done
 install -Dm644 shell/theme/noros.css        out/stage/usr/share/noros/theme/noros.css

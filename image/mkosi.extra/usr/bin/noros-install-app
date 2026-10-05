@@ -1,0 +1,16 @@
+#!/bin/sh
+# Installs a downloaded Flatpak (.flatpakref / .flatpak) for the current user,
+# in a terminal so you can see exactly what is downloaded and from where.
+file="$1"
+[ -n "$file" ] || { echo "usage: noros-install-app FILE"; exit 2; }
+exec foot --title "Install App" sh -c '
+    echo "Installing $1"
+    echo "This downloads the app and anything it needs from the source named in the file."
+    echo
+    if flatpak install --user --assumeyes "$1"; then
+        echo; echo "Installed. Find it with Super + Space."
+    else
+        echo; echo "The app was not installed."
+    fi
+    echo; echo "Press Enter to close."; read _
+' sh "$file"

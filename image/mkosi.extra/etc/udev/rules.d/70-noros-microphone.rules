@@ -1,0 +1,2 @@
+# Privacy Center's microphone switch: while it's off, nobody gets capture devices.
+SUBSYSTEM=="sound", KERNEL=="pcmC*D*c", TEST=="/var/lib/noros/vakt/microphone-off", TAG-="uaccess", MODE="0600"

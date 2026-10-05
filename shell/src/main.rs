@@ -14,7 +14,7 @@ mod wallpaper;
 use gtk::{gdk, gio, glib, prelude::*};
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
-pub const RELEASE_NAME: &str = "Vakt";
+pub const RELEASE_NAME: &str = "Bro";
 
 const BASE_CSS: &str = include_str!("../theme/noros.css");
 
@@ -23,12 +23,15 @@ enum Mode {
     Desktop,
     Launcher,
     About,
+    /// `noros-shell --message TITLE TEXT`: a small notice window.
+    Message,
 }
 
 fn main() -> glib::ExitCode {
     let mode = match std::env::args().nth(1).as_deref() {
         Some("--launcher") => Mode::Launcher,
         Some("--about") => Mode::About,
+        Some("--message") => Mode::Message,
         Some("--version") => {
             println!("noros-shell {VERSION} ({RELEASE_NAME})");
             return glib::ExitCode::SUCCESS;
@@ -47,6 +50,7 @@ fn main() -> glib::ExitCode {
         Mode::Desktop => "no.noros.Shell",
         Mode::Launcher => "no.noros.Launcher",
         Mode::About => "no.noros.About",
+        Mode::Message => "no.noros.Message",
     };
     // NON_UNIQUE: no D-Bus round trip at startup, every instance is independent.
     let app = gtk::Application::builder()
@@ -60,6 +64,34 @@ fn main() -> glib::ExitCode {
             Mode::Desktop => desktop::start(app, theme),
             Mode::Launcher => launcher::build(app),
             Mode::About => about::build(app),
+            Mode::Message => {
+                let args: Vec<String> = std::env::args().skip(2).collect();
+                let window = gtk::ApplicationWindow::builder().application(app).default_width(440).resizable(false).build();
+                window.set_title(Some(args.first().map(String::as_str).unwrap_or("NorOS")));
+                let content = gtk::Box::new(gtk::Orientation::Vertical, 12);
+                content.set_margin_top(24);
+                content.set_margin_bottom(20);
+                content.set_margin_start(24);
+                content.set_margin_end(24);
+                let title = gtk::Label::new(args.first().map(String::as_str));
+                title.add_css_class("about-version");
+                title.set_markup(&format!("<b><big>{}</big></b>", glib::markup_escape_text(args.first().map(String::as_str).unwrap_or(""))));
+                title.set_xalign(0.0);
+                let body = gtk::Label::new(args.get(1).map(String::as_str));
+                body.set_wrap(true);
+                body.set_xalign(0.0);
+                body.set_max_width_chars(52);
+                let ok = gtk::Button::with_label("OK");
+                ok.add_css_class("suggested-action");
+                ok.set_halign(gtk::Align::End);
+                let w = window.clone();
+                ok.connect_clicked(move |_| w.close());
+                content.append(&title);
+                content.append(&body);
+                content.append(&ok);
+                window.set_child(Some(&content));
+                window.present();
+            }
         }
     });
 

@@ -21,6 +21,9 @@ done
 # Desktop-wide defaults for GTK (window buttons, dark mode) live in GSettings.
 glib-compile-schemas /usr/share/glib-2.0/schemas
 
+# Sound runs per user, started on demand.
+systemctl --global enable pipewire.socket pipewire-pulse.socket wireplumber.service || true
+
 systemctl enable noros-session.service noros-cleanup.service vaktd.service
 systemctl enable systemd-networkd.service systemd-resolved.service
 systemctl set-default graphical.target

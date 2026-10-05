@@ -265,6 +265,28 @@ def phase_live(qmp, a, settle):
     qmp.click(382, 236)  # "Network Activity" in the sidebar
     time.sleep(settle)
     qmp.screenshot(f"{a.out}/11-privacy-network.png")
+    qmp.keys("meta_l", "q")
+    time.sleep(3)
+
+    # Web: open the browser, load a page (Vakt asks first), then download a file.
+    qmp.keys("meta_l", "spc")
+    time.sleep(settle)
+    qmp.type("web")
+    time.sleep(2)
+    qmp.keys("ret")
+    time.sleep(settle * 2)
+    qmp.screenshot(f"{a.out}/12-web-start.png")
+    qmp.type("example.com\n")
+    time.sleep(settle)
+    qmp.screenshot(f"{a.out}/13-web-prompt.png")
+    qmp.click(918, 229)  # "Always Allow"
+    time.sleep(settle * 3)
+    qmp.screenshot(f"{a.out}/14-web-page.png")
+    qmp.keys("ctrl", "l")
+    time.sleep(1)
+    qmp.type("https://httpbin.org/bytes/4096\n")
+    time.sleep(settle * 3)
+    qmp.screenshot(f"{a.out}/15-web-download.png")
     return 0
 
 

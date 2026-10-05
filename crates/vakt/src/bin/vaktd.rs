@@ -31,6 +31,7 @@ use vakt::{Answer, App, Ask, Connection, Destination, Event, Mode, Policy, Reque
 const QUEUE: u16 = 42;
 const STATE_DIR: &str = "/etc/noros/vakt";
 const CAMERA_OFF_FLAG: &str = "/var/lib/noros/vakt/camera-off";
+const MIC_OFF_FLAG: &str = "/var/lib/noros/vakt/microphone-off";
 const ASK_TIMEOUT: Duration = Duration::from_secs(60);
 const ALLOW_ONCE_FOR: Duration = Duration::from_secs(10 * 60);
 const LOG_SIZE: usize = 1000;
@@ -61,11 +62,17 @@ fn log(message: &str) {
 struct Settings {
     mode: Mode,
     camera_enabled: bool,
+    #[serde(default = "yes")]
+    microphone_enabled: bool,
+}
+
+fn yes() -> bool {
+    true
 }
 
 impl Default for Settings {
     fn default() -> Self {
-        Self { mode: Mode::Ask, camera_enabled: true }
+        Self { mode: Mode::Ask, camera_enabled: true, microphone_enabled: true }
     }
 }
 
@@ -239,6 +246,20 @@ fn process_owning(inode: u64, uid: Option<u32>) -> Option<u32> {
 /// Program names from installed .desktop files, keyed by program path.
 fn desktop_names() -> HashMap<String, String> {
     let mut names = HashMap::new();
+    // Flatpak apps are named by their app ID (the .desktop file name).
+    let mut flatpak_dirs = vec!["/var/lib/flatpak/exports/share/applications".to_string()];
+    for home in fs::read_dir("/home").into_iter().flatten().flatten() {
+        flatpak_dirs.push(format!("{}/.local/share/flatpak/exports/share/applications", home.path().display()));
+    }
+    for dir in &flatpak_dirs {
+        for entry in fs::read_dir(dir).into_iter().flatten().flatten() {
+            let path = entry.path();
+            let Some(id) = path.file_stem().map(|s| s.to_string_lossy().into_owned()) else { continue };
+            if let Some(name) = fs::read_to_string(&path).ok().and_then(|t| t.lines().find_map(|l| l.strip_prefix("Name=")).map(|n| n.trim().to_string())) {
+                names.insert(format!("flatpak:{id}"), name);
+            }
+        }
+    }
     for dir in ["/usr/share/applications", "/usr/local/share/applications"] {
         let Ok(entries) = fs::read_dir(dir) else { continue };
         for entry in entries.flatten() {
@@ -263,17 +284,52 @@ fn desktop_names() -> HashMap<String, String> {
     names
 }
 
+fn parent_of(pid: u32) -> Option<u32> {
+    fs::read_to_string(format!("/proc/{pid}/status"))
+        .ok()?
+        .lines()
+        .find_map(|l| l.strip_prefix("PPid:"))?
+        .trim()
+        .parse()
+        .ok()
+}
+
+fn exe_of(pid: u32) -> Option<String> {
+    fs::read_link(format!("/proc/{pid}/exe")).ok().map(|p| p.to_string_lossy().into_owned())
+}
+
+/// The program to hold responsible for a process: Flatpak apps by their app ID,
+/// and browser helper processes (WebKit's network process) by the browser itself.
+fn responsible(pid: u32) -> Option<(u32, String)> {
+    let info = fs::read_to_string(format!("/proc/{pid}/root/.flatpak-info")).unwrap_or_default();
+    if let Some(id) = info.lines().find_map(|l| l.strip_prefix("name=")) {
+        return Some((pid, format!("flatpak:{}", id.trim())));
+    }
+    let exe = exe_of(pid)?;
+    let file = Path::new(&exe).file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+    if file.starts_with("WebKit") {
+        if let Some(parent) = parent_of(pid).filter(|p| *p > 1) {
+            if let Some(found) = responsible(parent) {
+                return Some(found);
+            }
+        }
+    }
+    Some((pid, exe))
+}
+
 fn identify(packet: &Packet, uid: Option<u32>, names: &HashMap<String, String>) -> App {
     let pid = socket_inode(if packet.protocol == "udp" { "udp" } else { "tcp" }, packet.source_port)
         .filter(|_| packet.source_port != 0)
         .and_then(|inode| process_owning(inode, uid));
-    let exe = pid
-        .and_then(|pid| fs::read_link(format!("/proc/{pid}/exe")).ok())
-        .map(|p| p.to_string_lossy().into_owned())
-        .unwrap_or_else(|| "unknown".into());
+    let (pid, exe) = match pid.and_then(responsible) {
+        Some((pid, exe)) => (Some(pid), exe),
+        None => (pid, "unknown".to_string()),
+    };
     let name = names.get(&exe).cloned().unwrap_or_else(|| {
         if exe == "unknown" {
             "Unknown program".into()
+        } else if let Some(id) = exe.strip_prefix("flatpak:") {
+            id.rsplit('.').next().unwrap_or(id).to_string()
         } else {
             Path::new(&exe).file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_else(|| exe.clone())
         }
@@ -488,6 +544,70 @@ fn apply_camera(enabled: bool) {
     }
 }
 
+// ── Microphone ───────────────────────────────────────────────────────
+
+/// ALSA capture devices (the kernel side of every microphone).
+fn capture_devices() -> Vec<String> {
+    fs::read_dir("/dev/snd")
+        .into_iter()
+        .flatten()
+        .flatten()
+        .map(|e| e.path().to_string_lossy().into_owned())
+        .filter(|p| p.rsplit('/').next().is_some_and(|n| n.starts_with("pcmC") && n.ends_with('c')))
+        .collect()
+}
+
+fn microphone_in_use() -> bool {
+    let Ok(cards) = fs::read_dir("/proc/asound") else { return false };
+    for card in cards.flatten().filter(|c| c.file_name().to_string_lossy().starts_with("card")) {
+        for pcm in fs::read_dir(card.path()).into_iter().flatten().flatten() {
+            if !pcm.file_name().to_string_lossy().ends_with('c') {
+                continue;
+            }
+            for sub in fs::read_dir(pcm.path()).into_iter().flatten().flatten() {
+                if fs::read_to_string(sub.path().join("status")).is_ok_and(|s| s.contains("RUNNING")) {
+                    return true;
+                }
+            }
+        }
+    }
+    false
+}
+
+/// Switching the microphone off removes access to every capture device and
+/// restarts the sound servers holding one open, so recording stops right away
+/// (sound playback resumes by itself a moment later).
+fn apply_microphone(enabled: bool) {
+    if enabled {
+        let _ = fs::remove_file(MIC_OFF_FLAG);
+    } else {
+        let _ = fs::create_dir_all(Path::new(MIC_OFF_FLAG).parent().unwrap());
+        let _ = fs::write(MIC_OFF_FLAG, "");
+    }
+    let _ = Command::new("udevadm").args(["trigger", "--subsystem-match=sound", "--action=change"]).status();
+    let _ = Command::new("udevadm").args(["settle", "--timeout=5"]).status();
+    if enabled {
+        return;
+    }
+    let devices = capture_devices();
+    for device in &devices {
+        let _ = Command::new("setfacl").args(["-b", device]).status();
+        let _ = fs::set_permissions(device, fs::Permissions::from_mode(0o600));
+    }
+    for entry in fs::read_dir("/proc").into_iter().flatten().flatten() {
+        let Some(pid) = entry.file_name().to_str().and_then(|n| n.parse::<i32>().ok()) else { continue };
+        let holds = fs::read_dir(format!("/proc/{pid}/fd"))
+            .into_iter()
+            .flatten()
+            .flatten()
+            .any(|fd| fs::read_link(fd.path()).is_ok_and(|l| devices.iter().any(|d| l.to_string_lossy() == d.as_str())));
+        let is_sound_server = exe_of(pid as u32).is_some_and(|e| e.ends_with("/pipewire") || e.ends_with("/wireplumber"));
+        if holds && is_sound_server {
+            unsafe { libc::kill(pid, libc::SIGTERM) };
+        }
+    }
+}
+
 // ── Names from DNS lookups ───────────────────────────────────────────
 
 /// Watch systemd-resolved's answers (locally; nothing extra is looked up) so
@@ -563,6 +683,9 @@ fn status(shared: &Shared) -> Status {
         camera_enabled: state.settings.camera_enabled,
         camera_present: !camera_devices().is_empty(),
         camera_in_use: camera_users(&names),
+        microphone_enabled: state.settings.microphone_enabled,
+        microphone_present: !capture_devices().is_empty(),
+        microphone_in_use: microphone_in_use(),
     }
 }
 
@@ -645,7 +768,21 @@ fn handle_client(shared: Arc<Shared>, stream: UnixStream) {
                 log(&format!("camera {}", if enabled { "on" } else { "off" }));
                 Event::Ok
             }
-            Request::SetRule { .. } | Request::DeleteRule { .. } | Request::SetMode { .. } | Request::SetCamera { .. } => denied(),
+            Request::SetMicrophone { enabled } if is_admin(uid) => {
+                {
+                    let mut state = shared.state.lock().unwrap();
+                    state.settings.microphone_enabled = enabled;
+                    save("settings.toml", &state.settings);
+                }
+                apply_microphone(enabled);
+                log(&format!("microphone {}", if enabled { "on" } else { "off" }));
+                Event::Ok
+            }
+            Request::SetRule { .. }
+            | Request::DeleteRule { .. }
+            | Request::SetMode { .. }
+            | Request::SetCamera { .. }
+            | Request::SetMicrophone { .. } => denied(),
         };
         if !reply(response) {
             break;
@@ -690,6 +827,7 @@ fn main() {
     let settings: Settings = load("settings.toml");
     let rules: RuleFile = load("rules.toml");
     apply_camera(settings.camera_enabled);
+    apply_microphone(settings.microphone_enabled);
 
     let mut queue = match Queue::open() {
         Ok(q) => q,

@@ -8,12 +8,15 @@ export XCURSOR_SIZE=24
 export MOZ_ENABLE_WAYLAND=1
 export QT_QPA_PLATFORM="wayland;xcb"
 export SDL_VIDEODRIVER=wayland
+# Apps installed with Flatpak show up in search and the dock.
+export XDG_DATA_DIRS="$HOME/.local/share/flatpak/exports/share:/var/lib/flatpak/exports/share:/usr/local/share:/usr/share"
 
 # Virtual machines usually have no 3D acceleration: render on the CPU.
 # Set NOROS_HW_ACCEL=1 to skip this (e.g. a VM with virgl).
 if [ -z "$NOROS_HW_ACCEL" ] && systemd-detect-virt --vm --quiet; then
     export LIBGL_ALWAYS_SOFTWARE=1
     export GSK_RENDERER=cairo
+    export WEBKIT_DISABLE_DMABUF_RENDERER=1
 fi
 
 exec fjord

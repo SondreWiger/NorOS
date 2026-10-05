@@ -1,0 +1,10 @@
+[package]
+name = "noros-web"
+description = "Web: the NorOS browser"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+gtk = { workspace = true }
+webkit = { package = "webkit6", version = "0.6", features = ["v2_44"] }

@@ -1,0 +1,23 @@
+#!/bin/sh
+# Runs a Windows program with Wine. Each program gets its own private Windows
+# folder in ~/.local/share/noros/windows, so programs can't see each other.
+file="$1"
+[ -n "$file" ] || { echo "usage: noros-run-windows FILE.exe"; exit 2; }
+
+if [ "$(uname -m)" != "x86_64" ]; then
+    exec noros-shell --message "Windows programs need an Intel or AMD PC" \
+        "This computer has a $(uname -m) processor. Most Windows programs are made for Intel and AMD processors, and NorOS can't run them here yet. On a PC with NorOS, double-clicking the file runs it."
+fi
+if ! command -v wine >/dev/null; then
+    exec noros-shell --message "Windows support isn't installed" "The Wine compatibility layer is missing from this system."
+fi
+
+name=$(basename "$file" | sed 's/\.[^.]*$//' | tr -c 'A-Za-z0-9._-\n' '_')
+prefix="$HOME/.local/share/noros/windows/$name"
+mkdir -p "$prefix"
+export WINEPREFIX="$prefix"
+export WINEDEBUG=-all
+case "$file" in
+    *.msi|*.MSI) exec wine msiexec /i "$file" ;;
+    *) exec wine "$file" ;;
+esac

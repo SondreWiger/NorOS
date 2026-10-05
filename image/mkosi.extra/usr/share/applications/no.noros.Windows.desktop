@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Windows Program
+Comment=Run a Windows program (.exe)
+Exec=noros-run-windows %f
+Icon=application-x-executable-symbolic
+Terminal=false
+NoDisplay=true
+MimeType=application/x-ms-dos-executable;application/x-msdownload;application/vnd.microsoft.portable-executable;application/x-msi;application/x-ms-shortcut;

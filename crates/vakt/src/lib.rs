@@ -110,6 +110,13 @@ pub struct Status {
     pub camera_present: bool,
     /// Apps that have a camera open right now.
     pub camera_in_use: Vec<App>,
+    #[serde(default)]
+    pub microphone_enabled: bool,
+    #[serde(default)]
+    pub microphone_present: bool,
+    /// Something is recording right now.
+    #[serde(default)]
+    pub microphone_in_use: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -125,6 +132,7 @@ pub enum Request {
     SetMode { mode: Mode },
     Log,
     SetCamera { enabled: bool },
+    SetMicrophone { enabled: bool },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

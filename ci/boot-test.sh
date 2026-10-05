@@ -69,7 +69,8 @@ boot() {  # boot <phase> <serial log> <extra qemu args...>
 case "$MODE" in
     live)
         # A network, so the Vakt firewall has something to guard.
-        boot live serial.log "${CDROM[@]}" -netdev user,id=net0 -device virtio-net-pci,netdev=net0,romfile=
+        boot live serial.log "${CDROM[@]}" -netdev user,id=net0 -device virtio-net-pci,netdev=net0,romfile= \
+            -audiodev none,id=snd0 -device intel-hda -device hda-duplex,audiodev=snd0
         exit $?
         ;;
     install)

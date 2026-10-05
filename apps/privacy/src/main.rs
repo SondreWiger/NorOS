@@ -285,9 +285,18 @@ fn fill_overview(body: &gtk::Box, status: &Status) {
     } else {
         format!("In use by {}", status.camera_in_use.iter().map(|a| a.name.as_str()).collect::<Vec<_>>().join(", "))
     };
+    let microphone = if !status.microphone_present {
+        "No microphone connected".to_string()
+    } else if !status.microphone_enabled {
+        "Off for every app".to_string()
+    } else if status.microphone_in_use {
+        "Recording right now".to_string()
+    } else {
+        "On · not recording".to_string()
+    };
     let g = group(body, "Devices");
     g.append(&item("Camera", Some(&camera), None));
-    g.append(&item("Microphone", Some("No sound system yet — arrives with NorOS 0.5"), None));
+    g.append(&item("Microphone", Some(&microphone), None));
 }
 
 fn network_page() -> gtk::ScrolledWindow {
@@ -424,7 +433,7 @@ fn rules_page() -> (gtk::ScrolledWindow, Refresh) {
 fn devices_page(refresh_overview: &Refresh) -> gtk::ScrolledWindow {
     let (scroller, content) = page(
         "Camera & Devices",
-        "Turning the camera off removes access for every app at the system level — no app can switch it back on.",
+        "These switches work at the system level — no app can turn them back on.",
     );
     let status = match ask(Request::Status) {
         Some(Event::Status(s)) => s,
@@ -450,9 +459,34 @@ fn devices_page(refresh_overview: &Refresh) -> gtk::ScrolledWindow {
         g.append(&item(&format!("{} is using the camera", app.name), Some(&app.exe), None));
     }
 
-    let g = group(&content, "Coming Later");
-    g.append(&item("Microphone", Some("NorOS doesn't have a sound system yet. Microphone control arrives with it in 0.5."), None));
-    g.append(&item("Files, location and screen", Some("Per-app permissions need app sandboxing, which arrives with Flatpak apps in 0.5."), None));
+    let g = group(&content, "Microphone");
+    let mic = gtk::Switch::new();
+    mic.set_active(status.microphone_enabled);
+    {
+        let refresh = refresh_overview.clone();
+        mic.connect_active_notify(move |s| {
+            if let Some(Event::Error { message }) = ask(Request::SetMicrophone { enabled: s.is_active() }) {
+                eprintln!("noros-privacy: {message}");
+            }
+            refresh();
+        });
+    }
+    let detail = if status.microphone_present {
+        "Turning it off stops any recording immediately and keeps every app from listening."
+    } else {
+        "No microphone is connected right now"
+    };
+    g.append(&item("Microphone access", Some(detail), Some(mic.upcast_ref())));
+    if status.microphone_in_use {
+        g.append(&item("Something is recording right now", None, None));
+    }
+
+    let g = group(&content, "Files");
+    g.append(&item(
+        "Flatpak apps ask before opening your files",
+        Some("Apps installed as Flatpaks run in a sandbox: they only see a file when you pick it in a file dialog. Apps that come with NorOS are trusted."),
+        None,
+    ));
     scroller
 }
 
