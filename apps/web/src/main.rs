@@ -584,7 +584,8 @@ impl Browser {
                 let _ = std::fs::create_dir_all(&dir);
                 let path = unique_path(&dir, if suggested.is_empty() { "download" } else { suggested });
                 name.set_text(&path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default());
-                d.set_destination(&gio::File::for_path(&path).uri());
+                // WebKitGTK 6 takes a plain file path here (older versions took a URI).
+                d.set_destination(&path.to_string_lossy());
                 *destination.borrow_mut() = Some(path);
                 true
             });
