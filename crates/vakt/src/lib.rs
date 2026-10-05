@@ -140,7 +140,12 @@ pub enum Request {
 pub enum Event {
     Ask(Ask),
     /// A question was answered (here or elsewhere) or timed out.
-    Answered { id: u64 },
+    Answered {
+        id: u64,
+        /// Whether the app may now connect.
+        #[serde(default)]
+        allowed: bool,
+    },
     Connection(Connection),
     Status(Status),
     Rules { rules: Vec<Rule> },

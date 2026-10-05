@@ -42,7 +42,7 @@ pub fn start(app: &gtk::Application) {
                         p.waiting.push_back(ask);
                     }
                 }
-                Event::Answered { id } => {
+                Event::Answered { id, .. } => {
                     let mut p = prompts.borrow_mut();
                     p.waiting.retain(|a| a.id != id);
                     if p.current.as_ref().is_some_and(|(current, _)| *current == id) {

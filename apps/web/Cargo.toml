@@ -8,3 +8,4 @@ license.workspace = true
 [dependencies]
 gtk = { workspace = true }
 webkit = { package = "webkit6", version = "0.6", features = ["v2_44"] }
+vakt = { path = "../../crates/vakt" }

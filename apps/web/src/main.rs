@@ -45,6 +45,18 @@ fn start_page(private: bool) -> String {
     )
 }
 
+fn waiting_page(uri: &str) -> String {
+    let esc = uri.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;");
+    format!(
+        r#"<!doctype html><html><head><meta charset="utf-8"><title>Waiting for permission</title>
+<style>body {{ margin: 0; height: 100vh; display: grid; place-items: center; font-family: Inter, sans-serif; background: #0B1220; color: #E8EEF7; }}
+.wrap {{ max-width: 560px; padding: 24px; }} h1 {{ font-size: 28px; }} code {{ opacity: .7; word-break: break-all; }}
+p {{ opacity: .75; line-height: 1.5; }} .dot {{ color: #3DDC97; }}</style></head>
+<body><div class="wrap"><h1>Waiting for your permission<span class="dot">…</span></h1><p><code>{esc}</code></p>
+<p>NorOS is asking whether Web may go online. Answer at the top of the screen — the page opens as soon as you allow it.</p></div></body></html>"#
+    )
+}
+
 fn error_page(uri: &str, message: &str) -> String {
     let esc = |s: &str| s.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;");
     format!(
@@ -103,7 +115,17 @@ fn unique_path(dir: &std::path::Path, name: &str) -> PathBuf {
         .unwrap()
 }
 
+/// What Vakt (the NorOS firewall) is currently asking about this browser.
+#[derive(Default)]
+struct Guard {
+    /// Questions about Web that haven't been answered yet.
+    pending: std::collections::HashSet<u64>,
+    /// Tabs whose load failed while a question was open, with the address to retry.
+    waiting: Vec<(glib::WeakRef<WebView>, String)>,
+}
+
 struct Browser {
+    guard: Rc<RefCell<Guard>>,
     app: gtk::Application,
     window: gtk::ApplicationWindow,
     notebook: gtk::Notebook,
@@ -226,6 +248,7 @@ fn new_window(app: &gtk::Application, private: bool) -> Rc<Browser> {
     window.set_child(Some(&layout));
 
     let browser = Rc::new(Browser {
+        guard: Rc::default(),
         app: app.clone(),
         window: window.clone(),
         notebook: notebook.clone(),
@@ -331,6 +354,7 @@ fn new_window(app: &gtk::Application, private: bool) -> Rc<Browser> {
         });
     }
     add_shortcuts(&browser);
+    watch_guard(&browser);
     window.present();
     browser
 }
@@ -416,14 +440,24 @@ impl Browser {
                 }
             });
         }
-        view.connect_load_failed(|v, _, uri, err| {
-            // Cancelled loads (e.g. a download started) aren't failures.
-            if err.matches(webkit::NetworkError::Cancelled) || err.message().contains("interrupted") {
-                return false;
-            }
-            v.load_alternate_html(&error_page(uri, err.message()), uri, None);
-            true
-        });
+        {
+            let guard = self.guard.clone();
+            view.connect_load_failed(move |v, _, uri, err| {
+                // Cancelled loads (e.g. a download started) aren't failures.
+                if err.matches(webkit::NetworkError::Cancelled) || err.message().contains("interrupted") {
+                    return false;
+                }
+                // NorOS is still asking whether we may go online: wait, then retry.
+                let mut g = guard.borrow_mut();
+                if !g.pending.is_empty() {
+                    g.waiting.push((v.downgrade(), uri.to_string()));
+                    v.load_alternate_html(&waiting_page(uri), uri, None);
+                    return true;
+                }
+                v.load_alternate_html(&error_page(uri, err.message()), uri, None);
+                true
+            });
+        }
         {
             let b = Rc::downgrade(self);
             view.connect_permission_request(move |v, request| {
@@ -629,6 +663,61 @@ impl Browser {
             }
         });
     }
+}
+
+/// Follow Vakt's questions about this browser, so pages that failed while you
+/// were deciding open by themselves once you allow them.
+fn watch_guard(browser: &Rc<Browser>) {
+    let me = std::fs::read_link("/proc/self/exe").map(|p| p.to_string_lossy().into_owned()).unwrap_or_default();
+    let (tx, rx) = std::sync::mpsc::channel::<vakt::Event>();
+    std::thread::spawn(move || loop {
+        if let Ok(mut client) = vakt::Client::connect() {
+            if client.send(&vakt::Request::Subscribe).is_ok() && client.wait_forever().is_ok() {
+                while let Ok(event) = client.next_event() {
+                    if tx.send(event).is_err() {
+                        return;
+                    }
+                }
+            }
+        }
+        std::thread::sleep(std::time::Duration::from_secs(5));
+    });
+    let guard = browser.guard.clone();
+    let window = browser.window.downgrade();
+    glib::timeout_add_local(std::time::Duration::from_millis(200), move || {
+        if window.upgrade().is_none() {
+            return glib::ControlFlow::Break;
+        }
+        while let Ok(event) = rx.try_recv() {
+            match event {
+                vakt::Event::Ask(ask) if ask.app.exe == me => {
+                    guard.borrow_mut().pending.insert(ask.id);
+                }
+                vakt::Event::Answered { id, allowed } => {
+                    let mut g = guard.borrow_mut();
+                    if !g.pending.remove(&id) {
+                        continue;
+                    }
+                    let waiting = std::mem::take(&mut g.waiting);
+                    drop(g);
+                    for (view, uri) in waiting {
+                        let Some(view) = view.upgrade() else { continue };
+                        if allowed {
+                            view.load_uri(&uri);
+                        } else {
+                            view.load_alternate_html(
+                                &error_page(&uri, "You chose not to let Web go online. You can change this in Privacy Center → App Rules."),
+                                &uri,
+                                None,
+                            );
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+        glib::ControlFlow::Continue
+    });
 }
 
 fn add_shortcuts(browser: &Rc<Browser>) {

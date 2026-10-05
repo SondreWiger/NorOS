@@ -488,7 +488,7 @@ fn packet_loop(shared: Arc<Shared>, mut queue: Queue, answers: Receiver<(u64, An
             for msg in h.messages {
                 verdict(&mut queue, msg, allow);
             }
-            shared.broadcast(&Event::Answered { id: h.id }, None);
+            shared.broadcast(&Event::Answered { id: h.id, allowed: allow }, None);
         }
 
         if idle {

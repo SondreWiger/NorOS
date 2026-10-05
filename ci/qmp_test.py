@@ -297,9 +297,11 @@ def phase_live(qmp, a, settle):
     time.sleep(settle)
     qmp.screenshot(f"{a.out}/13-web-prompt.png")
     qmp.click(918, 229)  # "Always Allow"
-    time.sleep(settle * 3)
+    time.sleep(settle * 3)  # the page should now open by itself
     qmp.screenshot(f"{a.out}/14-web-page.png")
-    qmp.keys("ctrl", "l")
+    qmp.click(775, 118)  # the address bar
+    time.sleep(1)
+    qmp.keys("ctrl", "a")
     time.sleep(1)
     qmp.type("https://httpbin.org/bytes/4096\n")
     time.sleep(settle * 3)

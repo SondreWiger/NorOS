@@ -953,6 +953,7 @@ name = "noros-web"
 version = "0.5.0"
 dependencies = [
  "gtk4",
+ "vakt",
  "webkit6",
 ]
 
