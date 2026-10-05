@@ -262,7 +262,7 @@ def phase_live(qmp, a, settle):
     qmp.keys("ret")
     time.sleep(settle * 1.5)
     qmp.screenshot(f"{a.out}/10-privacy.png")
-    qmp.click(320, 178)  # "Network Activity" in the sidebar
+    qmp.click(382, 236)  # "Network Activity" in the sidebar
     time.sleep(settle)
     qmp.screenshot(f"{a.out}/11-privacy-network.png")
     return 0

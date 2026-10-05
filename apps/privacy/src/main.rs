@@ -15,7 +15,8 @@ const APP_CSS: &str = r#"
 .item + .item { border-top: 1px solid alpha(currentColor, 0.07); }
 .item-title { font-weight: 600; }
 .item-detail { font-size: 12px; opacity: 0.6; }
-.hero { padding: 18px 20px; border-radius: 14px; background: alpha(@accent_bg_color, 0.12); border: 1px solid alpha(@accent_bg_color, 0.35); }
+.hero { padding: 18px 20px; border-radius: 14px; background: alpha(#3DDC97, 0.12); border: 1px solid alpha(#3DDC97, 0.35); }
+.hero.watching { background: alpha(#F5A524, 0.12); border-color: alpha(#F5A524, 0.4); }
 .hero.offline { background: alpha(#E5484D, 0.12); border-color: alpha(#E5484D, 0.4); }
 .hero-title { font-size: 20px; font-weight: 800; }
 .number { font-size: 30px; font-weight: 800; font-feature-settings: "tnum"; }
@@ -217,8 +218,10 @@ fn fill_overview(body: &gtk::Box, status: &Status) {
         Mode::AllowAll => ("Watching", "Every app may go online. Connections are still logged here."),
         Mode::Offline => ("Offline", "Nothing leaves this machine. Every app is blocked from the network."),
     };
-    if mode == Mode::Offline {
-        hero.add_css_class("offline");
+    match mode {
+        Mode::Offline => hero.add_css_class("offline"),
+        Mode::AllowAll => hero.add_css_class("watching"),
+        Mode::Ask => {}
     }
     let t = gtk::Label::new(Some(title));
     t.add_css_class("hero-title");
