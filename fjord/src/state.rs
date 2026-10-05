@@ -139,8 +139,8 @@ impl Fjord {
             layout: &std::env::var("XKB_DEFAULT_LAYOUT").unwrap_or_default(),
             ..XkbConfig::default()
         };
-        seat.add_keyboard(xkb, 300, 30)
-            .or_else(|_| seat.add_keyboard(XkbConfig::default(), 300, 30))
+        seat.add_keyboard(xkb, 500, 30)
+            .or_else(|_| seat.add_keyboard(XkbConfig::default(), 500, 30))
             .expect("failed to initialize keyboard");
         seat.add_pointer();
 

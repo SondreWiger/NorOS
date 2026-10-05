@@ -31,7 +31,7 @@ class Qmp:
         self.cmd("screendump", filename=path, format="png")
         print(f"screenshot: {path}")
 
-    def keys(self, *names, hold=120):
+    def keys(self, *names, hold=60):
         self.cmd("send-key", keys=[{"type": "qcode", "data": n} for n in names], **{"hold-time": hold})
 
     def click(self, x, y, width=1440, height=900):
@@ -274,7 +274,7 @@ def phase_live(qmp, a, settle):
     qmp.type("web")
     time.sleep(2)
     qmp.keys("ret")
-    time.sleep(settle * 2)
+    time.sleep(settle * 5)  # the browser starts several processes; slow under emulation
     qmp.screenshot(f"{a.out}/12-web-start.png")
     qmp.type("example.com\n")
     time.sleep(settle)
