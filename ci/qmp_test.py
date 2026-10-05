@@ -46,7 +46,10 @@ class Qmp:
             time.sleep(0.15)
 
     SYMBOLS = {" ": ["spc"], "-": ["minus"], "_": ["shift", "minus"], "/": ["slash"], ".": ["dot"],
-               "\n": ["ret"], ":": ["shift", "semicolon"], "=": ["equal"], ">": ["shift", "dot"]}
+               "\n": ["ret"], ":": ["shift", "semicolon"], "=": ["equal"], ">": ["shift", "dot"],
+               "&": ["shift", "7"], ";": ["semicolon"], "$": ["shift", "4"], "|": ["shift", "backslash"],
+               "'": ["apostrophe"], '"': ["shift", "apostrophe"], "*": ["shift", "8"], "(": ["shift", "9"],
+               ")": ["shift", "0"], ",": ["comma"]}
 
     def type(self, text):
         for ch in text:
@@ -100,7 +103,7 @@ def wait_desktop(qmp, a, name):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--phase", default="live", choices=["live", "install", "installed", "quit"])
+    p.add_argument("--phase", default="live", choices=["live", "install", "installed", "quit", "debug"])
     p.add_argument("--timeout", type=int, default=240)
     p.add_argument("--serial", required=True)
     p.add_argument("--socket", required=True)
@@ -115,7 +118,7 @@ def main():
         qmp.cmd("quit")
         return 0
     settle = 25 if a.timeout > 300 else 8
-    return {"live": phase_live, "install": phase_install, "installed": phase_installed}[a.phase](qmp, a, settle)
+    return {"live": phase_live, "install": phase_install, "installed": phase_installed, "debug": phase_debug}[a.phase](qmp, a, settle)
 
 
 def phase_install(qmp, a, settle):
@@ -182,6 +185,20 @@ def phase_installed(qmp, a, settle):
     qmp.click(330, 262)  # "Updates & Recovery" in the sidebar
     time.sleep(settle)
     qmp.screenshot(f"{a.out}/j2-updates.png")
+    return 0
+
+
+def phase_debug(qmp, a, settle):
+    """Run a command from NOROS_DEBUG_CMD in a terminal and screenshot its output."""
+    import os
+    if not wait_desktop(qmp, a, "d0"):
+        return 1
+    time.sleep(settle)
+    qmp.keys("meta_l", "ret")
+    time.sleep(settle)
+    qmp.type(os.environ.get("NOROS_DEBUG_CMD", "uname -a") + "\n")
+    time.sleep(int(os.environ.get("NOROS_DEBUG_WAIT", "120")))
+    qmp.screenshot(f"{a.out}/d1-debug.png")
     return 0
 
 

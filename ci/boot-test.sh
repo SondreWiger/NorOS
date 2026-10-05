@@ -73,6 +73,10 @@ case "$MODE" in
             -audiodev none,id=snd0 -device intel-hda -device hda-duplex,audiodev=snd0
         exit $?
         ;;
+    debug)
+        boot debug serial.log "${CDROM[@]}" -netdev user,id=net0 -device virtio-net-pci,netdev=net0,romfile=
+        exit $?
+        ;;
     install)
         rm -f disk.qcow2
         qemu-img create -q -f qcow2 disk.qcow2 16G

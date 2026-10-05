@@ -23,4 +23,7 @@ if [ -z "$NOROS_HW_ACCEL" ] && systemd-detect-virt --vm --quiet; then
     export WEBKIT_DISABLE_DMABUF_RENDERER=1
 fi
 
-exec fjord
+# systemd hands login sessions the wake-alarm capability. The desktop doesn't need
+# it, and sandboxing tools (bubblewrap, used by Web and Flatpak) refuse to run
+# with unexpected capabilities — so drop it before anything else starts.
+exec setpriv --inh-caps=-all --ambient-caps=-all fjord
