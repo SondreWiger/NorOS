@@ -299,12 +299,11 @@ def phase_live(qmp, a, settle):
     qmp.click(918, 229)  # "Always Allow"
     time.sleep(settle * 3)  # the page should now open by itself
     qmp.screenshot(f"{a.out}/14-web-page.png")
-    qmp.click(775, 118)  # the address bar
-    time.sleep(1)
-    qmp.keys("ctrl", "a")
-    time.sleep(1)
-    qmp.type("https://httpbin.org/bytes/4096\n")
-    time.sleep(settle * 3)
+    # Open a download link the way other apps do: hand the address to Web.
+    qmp.keys("meta_l", "ret")
+    time.sleep(settle)
+    qmp.type("noros-web https://httpbin.org/bytes/4096\n")
+    time.sleep(settle * 4)
     qmp.screenshot(f"{a.out}/15-web-download.png")
     return 0
 
