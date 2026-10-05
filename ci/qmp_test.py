@@ -46,7 +46,7 @@ class Qmp:
             time.sleep(0.15)
 
     SYMBOLS = {" ": ["spc"], "-": ["minus"], "_": ["shift", "minus"], "/": ["slash"], ".": ["dot"],
-               "\n": ["ret"], ":": ["shift", "semicolon"], "=": ["equal"]}
+               "\n": ["ret"], ":": ["shift", "semicolon"], "=": ["equal"], ">": ["shift", "dot"]}
 
     def type(self, text):
         for ch in text:
@@ -244,6 +244,27 @@ def phase_live(qmp, a, settle):
     qmp.type("files")
     time.sleep(3)
     qmp.screenshot(f"{a.out}/8-accent-live.png")
+    qmp.keys("esc")
+    time.sleep(2)
+
+    # Vakt: a program in the terminal tries to go online; the user is asked.
+    qmp.keys("meta_l", "ret")
+    time.sleep(settle)
+    qmp.type("echo hei > /dev/tcp/1.1.1.1/80\n")
+    time.sleep(settle)
+    qmp.screenshot(f"{a.out}/9-vakt-prompt.png")
+    time.sleep(65)  # unanswered questions are blocked after 60 s
+
+    qmp.keys("meta_l", "spc")
+    time.sleep(settle)
+    qmp.type("privacy")
+    time.sleep(2)
+    qmp.keys("ret")
+    time.sleep(settle * 1.5)
+    qmp.screenshot(f"{a.out}/10-privacy.png")
+    qmp.click(320, 178)  # "Network Activity" in the sidebar
+    time.sleep(settle)
+    qmp.screenshot(f"{a.out}/11-privacy-network.png")
     return 0
 
 

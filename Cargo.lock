@@ -257,7 +257,7 @@ checksum = "aedcfb3409746eddb02b9e19ebda1c3394f759a152e48ee875a0844d1b955484"
 
 [[package]]
 name = "fjord"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "bitflags",
  "smithay",
@@ -269,7 +269,7 @@ dependencies = [
 
 [[package]]
 name = "fundament"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -825,7 +825,7 @@ checksum = "f9f8bd3e56ce4dfc153cf470fffbfa98c7620958b312ca5c3a4b8d5181fd13c6"
 
 [[package]]
 name = "lys"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "gio",
  "serde",
@@ -866,15 +866,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "nfq"
+version = "0.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b9c8f4c88952507d9df9400a6a2e48640fb460e21dcb2b4716eb3ff156d6db9e"
+dependencies = [
+ "libc",
+]
+
+[[package]]
 name = "noros-files"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "gtk4",
 ]
 
 [[package]]
 name = "noros-installer"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "gtk4",
  "serde",
@@ -882,8 +891,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "noros-privacy"
+version = "0.4.0"
+dependencies = [
+ "gtk4",
+ "lys",
+ "vakt",
+]
+
+[[package]]
 name = "noros-settings"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "gtk4",
  "lys",
@@ -892,16 +910,17 @@ dependencies = [
 
 [[package]]
 name = "noros-shell"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "gtk4",
  "gtk4-layer-shell",
  "lys",
+ "vakt",
 ]
 
 [[package]]
 name = "noros-text"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "gtk4",
 ]
@@ -1486,6 +1505,17 @@ name = "unicode-ident"
 version = "1.0.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d245f478577f809a851594d02313b640fb437e0bb33866753cff937863096954"
+
+[[package]]
+name = "vakt"
+version = "0.4.0"
+dependencies = [
+ "libc",
+ "nfq",
+ "serde",
+ "serde_json",
+ "toml",
+]
 
 [[package]]
 name = "valuable"

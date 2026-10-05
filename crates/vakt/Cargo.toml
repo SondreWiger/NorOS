@@ -1,0 +1,22 @@
+[package]
+name = "vakt"
+description = "NorOS privacy guard: per-app network firewall, camera switch, connection log"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "1"
+nfq = { version = "0.2", optional = true }
+libc = { version = "0.2", optional = true }
+
+[features]
+# The daemon itself; apps only need the protocol types and client.
+daemon = ["dep:nfq", "dep:libc"]
+
+[[bin]]
+name = "vaktd"
+path = "src/bin/vaktd.rs"
+required-features = ["daemon"]

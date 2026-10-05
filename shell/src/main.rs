@@ -6,6 +6,7 @@
 
 mod about;
 mod desktop;
+mod guard;
 mod launcher;
 mod panels;
 mod wallpaper;
@@ -13,7 +14,7 @@ mod wallpaper;
 use gtk::{gdk, gio, glib, prelude::*};
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
-pub const RELEASE_NAME: &str = "Fundament";
+pub const RELEASE_NAME: &str = "Vakt";
 
 const BASE_CSS: &str = include_str!("../theme/noros.css");
 
@@ -104,6 +105,7 @@ impl Theme {
 pub fn spawn(command: &str) {
     let mut parts = command.split_whitespace();
     let Some(program) = parts.next() else { return };
+    lys::record_activity(program);
     if let Err(err) = std::process::Command::new(program).args(parts).spawn() {
         eprintln!("noros-shell: failed to start {command}: {err}");
     }

@@ -89,6 +89,7 @@ fn collect_entries() -> Vec<Entry> {
 fn run_entry(entry: &Entry) {
     match &entry.target {
         Target::App(app) => {
+            lys::record_activity(&entry.title);
             if let Err(err) = app.launch(&[], None::<&gio::AppLaunchContext>) {
                 eprintln!("noros-shell: failed to launch {}: {err}", entry.title);
             }

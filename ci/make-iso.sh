@@ -8,7 +8,7 @@
 set -euxo pipefail
 
 cd "$(dirname "$0")/.."
-VERSION=0.3
+VERSION=0.4
 LABEL=NOROS_LIVE
 case "$(uname -m)" in
     x86_64)  ARCH=x86_64; EFI_NAME=BOOTX64.EFI;  GRUB_TARGET=x86_64-efi ;;

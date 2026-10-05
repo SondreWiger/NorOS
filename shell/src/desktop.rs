@@ -37,6 +37,7 @@ pub fn start(app: &gtk::Application, theme: Theme) {
     });
     desktop.build();
     watch(&desktop);
+    crate::guard::start(app);
 }
 
 impl Desktop {

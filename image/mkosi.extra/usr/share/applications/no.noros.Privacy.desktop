@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Privacy Center
+Comment=See what leaves this machine, and decide
+Exec=noros-privacy
+Icon=security-high-symbolic
+Terminal=false
+Categories=Settings;Security;
+Keywords=firewall;network;camera;privacy;vakt;

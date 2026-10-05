@@ -1,0 +1,3 @@
+# Privacy Center's camera switch: while it's off, no user gets access to cameras,
+# including ones plugged in later.
+SUBSYSTEM=="video4linux", TEST=="/var/lib/noros/vakt/camera-off", TAG-="uaccess", MODE="0600"

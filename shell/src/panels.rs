@@ -112,6 +112,7 @@ fn system_menu(position: BarPosition) -> gtk::MenuButton {
     entries.extend([
         ("About NorOS", "noros-shell --about"),
         ("System Settings…", "noros-settings"),
+        ("Privacy Center…", "noros-privacy"),
         ("—", ""),
         ("Files", "noros-files"),
         ("Terminal", TERMINAL),
@@ -163,6 +164,7 @@ fn dock_entry(id: &str) -> Option<DockEntry> {
         "foot.desktop" => Some(("Terminal", "tile-terminal", "utilities-terminal-symbolic")),
         "no.noros.Text.desktop" => Some(("Text Editor", "tile-text", "accessories-text-editor-symbolic")),
         "no.noros.Settings.desktop" => Some(("Settings", "tile-settings", "emblem-system-symbolic")),
+        "no.noros.Privacy.desktop" => Some(("Privacy Center", "tile-privacy", "security-high-symbolic")),
         "noros-about" => Some(("About NorOS", "tile-about", "computer-symbolic")),
         "noros-install" => Some(("Install NorOS", "tile-install", "drive-harddisk-symbolic")),
         _ => None,
@@ -241,6 +243,7 @@ pub fn build_dock(app: &gtk::Application, config: &Config) -> gtk::ApplicationWi
         button.connect_clicked(move |_| match &launch {
             Launch::Command(command) => spawn(command),
             Launch::App(info) => {
+                lys::record_activity(&info.display_name());
                 if let Err(err) = info.launch(&[], None::<&gio::AppLaunchContext>) {
                     eprintln!("noros-shell: failed to launch: {err}");
                 }

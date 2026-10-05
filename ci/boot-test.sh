@@ -39,7 +39,7 @@ case "$ARCH" in
     *) echo "unknown arch $ARCH"; exit 2 ;;
 esac
 
-COMMON=(-m "${NOROS_TEST_MEM:-4096}" -smp 4 -nic none
+COMMON=(-m "${NOROS_TEST_MEM:-4096}" -smp 4
         -device qemu-xhci -device usb-kbd -device usb-tablet
         -display none
         -qmp unix:qmp.sock,server=on,wait=off)
@@ -68,17 +68,18 @@ boot() {  # boot <phase> <serial log> <extra qemu args...>
 
 case "$MODE" in
     live)
-        boot live serial.log "${CDROM[@]}"
+        # A network, so the Vakt firewall has something to guard.
+        boot live serial.log "${CDROM[@]}" -nic user,model=virtio-net-pci,romfile=
         exit $?
         ;;
     install)
         rm -f disk.qcow2
         qemu-img create -q -f qcow2 disk.qcow2 16G
         DISK=(-drive file=disk.qcow2,format=qcow2,if=virtio)
-        boot install serial-install.log "${CDROM[@]}" "${DISK[@]}" || exit 1
+        boot install serial-install.log "${CDROM[@]}" "${DISK[@]}" -nic none || exit 1
         # Start the installed system with fresh firmware settings and no ISO attached.
         cp "$VARS_TEMPLATE" vars.fd
-        boot installed serial-installed.log "${DISK[@]}"
+        boot installed serial-installed.log "${DISK[@]}" -nic none
         status=$?
         rm -f disk.qcow2
         exit $status

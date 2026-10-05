@@ -1,0 +1,13 @@
+[Unit]
+Description=Vakt privacy guard (per-app network firewall)
+After=local-fs.target
+Before=network-pre.target noros-session.service
+Wants=network-pre.target
+
+[Service]
+ExecStart=/usr/bin/vaktd
+Restart=always
+RestartSec=1
+
+[Install]
+WantedBy=multi-user.target

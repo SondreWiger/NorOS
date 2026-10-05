@@ -137,12 +137,20 @@ pub struct Windows {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(default)]
+pub struct Privacy {
+    /// Keep a local list of which apps you opened. Off unless you turn it on.
+    pub activity_history: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[serde(default)]
 pub struct Config {
     pub appearance: Appearance,
     pub desktop: Desktop,
     pub dock: Dock,
     pub menu_bar: MenuBar,
     pub windows: Windows,
+    pub privacy: Privacy,
 }
 
 impl Default for Appearance {
@@ -199,6 +207,7 @@ pub const DEFAULT_DOCK_APPS: &[&str] = &[
     "no.noros.Files.desktop",
     "foot.desktop",
     "no.noros.Text.desktop",
+    "no.noros.Privacy.desktop",
     "no.noros.Settings.desktop",
 ];
 
@@ -258,6 +267,55 @@ impl Config {
 
     pub fn accent_rgb(&self) -> (u8, u8, u8) {
         parse_hex(&self.appearance.accent).unwrap_or((0x3D, 0xDC, 0x97))
+    }
+}
+
+// ── Activity history ─────────────────────────────────────────────────
+
+/// Where the opt-in activity history lives. It never leaves this file.
+pub fn history_path() -> PathBuf {
+    let data = std::env::var_os("XDG_DATA_HOME")
+        .map(PathBuf::from)
+        .filter(|p| p.is_absolute())
+        .unwrap_or_else(|| PathBuf::from(std::env::var_os("HOME").unwrap_or_else(|| "/".into())).join(".local/share"));
+    data.join("noros/activity.log")
+}
+
+/// Note that an app was opened — only if the user turned history on.
+pub fn record_activity(what: &str) {
+    if !Config::load().privacy.activity_history {
+        return;
+    }
+    let path = history_path();
+    if let Some(dir) = path.parent() {
+        let _ = fs::create_dir_all(dir);
+    }
+    let secs = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
+    let line = format!("{secs}\t{}\n", what.replace(['\t', '\n'], " "));
+    use std::io::Write;
+    if let Ok(mut file) = fs::OpenOptions::new().create(true).append(true).open(&path) {
+        let _ = file.write_all(line.as_bytes());
+    }
+}
+
+/// (seconds since epoch, what), newest first.
+pub fn read_activity() -> Vec<(u64, String)> {
+    let mut entries: Vec<(u64, String)> = fs::read_to_string(history_path())
+        .unwrap_or_default()
+        .lines()
+        .filter_map(|l| {
+            let (secs, what) = l.split_once('\t')?;
+            Some((secs.parse().ok()?, what.to_string()))
+        })
+        .collect();
+    entries.reverse();
+    entries
+}
+
+pub fn clear_activity() -> io::Result<()> {
+    match fs::remove_file(history_path()) {
+        Err(err) if err.kind() != io::ErrorKind::NotFound => Err(err),
+        _ => Ok(()),
     }
 }
 

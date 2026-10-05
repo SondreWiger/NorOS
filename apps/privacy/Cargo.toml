@@ -1,0 +1,11 @@
+[package]
+name = "noros-privacy"
+description = "NorOS Privacy Center"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+gtk = { workspace = true }
+lys = { workspace = true }
+vakt = { path = "../../crates/vakt" }
